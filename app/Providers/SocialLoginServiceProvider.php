@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use App\CPU\Helpers;
+use App\Utils\Helpers;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 

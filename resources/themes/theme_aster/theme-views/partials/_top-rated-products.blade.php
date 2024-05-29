@@ -3,14 +3,13 @@
         <div class="">
             <div class="py-4">
                 <div class="d-flex flex-wrap justify-content-between gap-3 mb-4">
-                    <h2 class="text-primary">{{ translate('Top_Rated_Products') }}</h2>
+                    <h2 class="text-capitalize">{{ translate('top_rated_products') }}</h2>
                     <div class="swiper-nav d-flex gap-2 align-items-center">
                         <div class="swiper-button-prev top-rated-nav-prev position-static rounded-10"></div>
                         <div class="swiper-button-next top-rated-nav-next position-static rounded-10"></div>
                     </div>
                 </div>
                 <div class="swiper-container">
-                    <!-- Swiper -->
                     <div class="position-relative">
                         <div class="swiper" data-swiper-loop="true" data-swiper-margin="16"
                              data-swiper-pagination-el="null" data-swiper-navigation-next=".top-rated-nav-next"

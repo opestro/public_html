@@ -107,6 +107,7 @@ We may release future updates so it will overwrite this file. it's better and sa
     /* Toggle Menu */
     $(".menu-btn").on("click", function () {
         $(".aside").toggleClass("active");
+        $(".filter-toggle-aside").removeClass("active");
     });
     $(".aside-close > i").on("click", function () {
         $(".aside").removeClass("active");
@@ -299,6 +300,12 @@ We may release future updates so it will overwrite this file. it's better and sa
 
             var timeLeft = endTime - now;
 
+            // Check if the countdown has ended
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                return;
+            }
+
             var days = Math.floor(timeLeft / 86400);
             var hours = Math.floor((timeLeft - days * 86400) / 3600);
             var minutes = Math.floor(
@@ -308,16 +315,16 @@ We may release future updates so it will overwrite this file. it's better and sa
                 timeLeft - days * 86400 - hours * 3600 - minutes * 60
             );
 
-            if (days < "10") {
+            if (days < 10) {
                 days = "0" + days;
             }
-            if (hours < "10") {
+            if (hours < 10) {
                 hours = "0" + hours;
             }
-            if (minutes < "10") {
+            if (minutes < 10) {
                 minutes = "0" + minutes;
             }
-            if (seconds < "10") {
+            if (seconds < 10) {
                 seconds = "0" + seconds;
             }
 
@@ -342,10 +349,12 @@ We may release future updates so it will overwrite this file. it's better and sa
                     `<span class="countdown-count">${seconds}</span><span class="countdown-text">Sec</span>`
                 );
         }
-        setInterval(function () {
-            countdownTimer();
-        }, 1000);
+
+        countdownTimer(); // Call the function immediately to avoid initial delay
+
+        var timer = setInterval(countdownTimer, 1000);
     });
+
 
     /*==================================
     15: Swiper
@@ -551,7 +560,7 @@ We may release future updates so it will overwrite this file. it's better and sa
         },
     });
     var quickviewSlider = new Swiper(".quickviewSlider", {
-        spaceBetween: 10,
+        // spaceBetween: 10,
         autoplay: {
             delay: 5000,
             disableOnInteraction: false,
@@ -561,7 +570,7 @@ We may release future updates so it will overwrite this file. it's better and sa
         },
     });
 
-    //Product Details Page
+    // Product Quick View Modal
     var quickviewSliderThumb2 = new Swiper(".quickviewSliderThumb2", {
         spaceBetween: 10,
         slidesPerView: "auto",
@@ -578,7 +587,7 @@ We may release future updates so it will overwrite this file. it's better and sa
         },
     });
     var quickviewSlider2 = new Swiper(".quickviewSlider2", {
-        spaceBetween: 10,
+        // spaceBetween: 10,
         autoplay: {
             delay: 5000,
             disableOnInteraction: false,
@@ -587,6 +596,30 @@ We may release future updates so it will overwrite this file. it's better and sa
             swiper: quickviewSliderThumb2,
         },
     });
+
+    $(".quickviewSlider2").on("mouseenter", function () {
+        quickviewSlider2_stop();
+    });
+    $(".quickviewSlider2").on("mouseleave", function () {
+        quickviewSlider2_start();
+    });
+
+    $(".quickviewSliderThumb2").on("mouseenter", function () {
+        quickviewSlider2_stop();
+    });
+    $(".quickviewSliderThumb2").on("mouseleave", function () {
+        quickviewSlider2_start();
+    });
+
+    function quickviewSlider2_stop(){
+        quickviewSlider2.autoplay.stop();
+        quickviewSliderThumb2.autoplay.stop();
+    }
+
+    function quickviewSlider2_start(){
+        quickviewSlider2.autoplay.start();
+        quickviewSliderThumb2.autoplay.start();
+    }
 
     /*==================================
     21: Multi Range Slider
@@ -688,8 +721,8 @@ We may release future updates so it will overwrite this file. it's better and sa
             .parent()
             .siblings(".details-content-wrap")
             .hasClass("custom-height")
-            ? $(this).html("See More")
-            : $(this).html("See Less");
+            ? $(this).html($("#all-msg-container").data("seemore"))
+            : $(this).html($("#all-msg-container").data("afterextend"));
     });
 
     /*==================================
@@ -723,9 +756,9 @@ We may release future updates so it will overwrite this file. it's better and sa
             "change",
             function () {
                 if ($(this).val() === "list-view") {
-                    $("#filtered-products").addClass("product-list-view");
+                    $("#filtered-products").addClass("product-list-view").find('[class^="col-"]').removeClass('col-xxl-2 col-xl-3 col-md-4 col-sm-6').addClass('col-xl-4 col-md-6');
                 } else {
-                    $("#filtered-products").removeClass("product-list-view");
+                    $("#filtered-products").removeClass("product-list-view").find('[class^="col-"]').removeClass('col-xl-4 col-md-6').addClass('col-xxl-2 col-xl-3 col-md-4 col-sm-6');
                 }
             }
         );
@@ -808,6 +841,7 @@ We may release future updates so it will overwrite this file. it's better and sa
     ====================================*/
     $(".toggle-filter").on("click", function () {
         $(".filter-toggle-aside").toggleClass("active");
+        $(".aside").removeClass("active");
         $(".filter-toggle-aside .card-body").toggleClass("custom-scrollbar");
     });
     $(".filter-aside-close").on("click", function () {
@@ -866,7 +900,10 @@ We may release future updates so it will overwrite this file. it's better and sa
     /*==================================
     36: Stop propagation
     ====================================*/
-    $(".stopPropagation").on("click", function (e) {
-        e.stopPropagation();
-    });
+    $(window).on('load',function (){
+        $(".stopPropagation").on("click", function (e) {
+            e.stopPropagation();
+        });
+    })
+
 })(jQuery);

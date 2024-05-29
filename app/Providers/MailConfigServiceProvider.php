@@ -2,8 +2,7 @@
 
 namespace App\Providers;
 
-use App\CPU\Helpers;
-use App\Model\BusinessSetting;
+use App\Utils\Helpers;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\ServiceProvider;
 

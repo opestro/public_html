@@ -34,7 +34,7 @@ use Madnest\Madzipper\Facades\Madzipper;
         ->png();
 });*/
 
-use App\CPU\Helpers;
+use App\Utils\Helpers;
 Route::get('aws-data', function () {
     return "bdsb";
     return view('installation.step5');
@@ -66,7 +66,7 @@ Route::post('aws-upload', function (Request $request) {
 
 /*Route::get('test-data-insert', function () {
     ini_set('max_execution_time', '300');
-    $order_id = \App\Model\Order::orderBy('id', 'DESC')->first()->id??0;
+    $order_id = \App\Models\Order::orderBy('id', 'DESC')->first()->id??0;
     $user_id = rand(1, 20);
     $or = [];
     for ($count = 1; $count < 110000; $count++) {

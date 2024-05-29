@@ -1,265 +1,197 @@
-<style>    
-.icon-ball-mobile {
-    background-color: #073b74;
-    color: white;
-    border-radius: 10%;
-    width: 40px; 
-    height: 40px; 
-    text-align: center;
-    line-height: 38px;
-    font-size: 20px; 
-    position: absolute;
-    top: 10px; 
-    right: -60px; 
-}
-
-
-
-[dir="rtl"] .icon-ball-mobile {
-    right: auto;
-    left: -60px;
-}
-
-.side-logo {
-    background-color: #073b74;
-}
-
-.user-name
-{
-    color: #ffffff; 
-}
-.user-email {
-    color: #8ce98a; 
-}
-#logoutButton {
-    margin-top:20px;
-    bottom: 10px; /* Set bottom margin to 10px */
-    width: 80%; 
-}
-
-#logoutButton::before {
-    content: "";
-    display: block;
-    border-top: 1px solid gray; 
-    width: 100%;
-    margin-bottom: 10px;
-}
-
-@media (max-width: 1200px) {
-    html[dir="rtl"] aside {
-      transform: translateX(100%); /* Move the aside off the screen */
-    }
-}    
-
-</style>
+@php
+    use App\Enums\ViewPaths\Vendor\Chatting;
+    use App\Enums\ViewPaths\Vendor\Product;
+    use App\Enums\ViewPaths\Vendor\Profile;
+    use App\Enums\ViewPaths\Vendor\Refund;
+    use App\Enums\ViewPaths\Vendor\Review;
+    use App\Enums\ViewPaths\Vendor\DeliveryMan;
+    use App\Enums\ViewPaths\Vendor\EmergencyContact;
+    use App\Models\Order;
+    use App\Models\RefundRequest;
+    use App\Models\Shop;
+    use App\Enums\ViewPaths\Vendor\Order as OrderEnum;
+@endphp
 <div id="sidebarMain" class="d-none">
     <aside style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};"
-        class="js-navbar-vertical-aside navbar navbar-vertical-aside navbar-vertical navbar-vertical-fixed navbar-expand-xl navbar-bordered  ">
-        
-        <button type="button" style="display : none;" class="js-navbar-vertical-aside-toggle-invoker close" id="toggleButton">
-                                <div class="icon-ball-mobile navbar-vertical-aside-toggle-short-align" data-toggle="tooltip"
-                                    data-placement="right" title="Collapse">&lt;</div>
-                                <div class="icon-ball-mobile navbar-vertical-aside-toggle-full-align"
-                                    data-template='<div class="tooltip d-none d-sm-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'
-                                    data-toggle="tooltip" data-placement="right" title="Expand">&gt;</div>
-                    </button>
+           class="js-navbar-vertical-aside navbar navbar-vertical-aside navbar-vertical navbar-vertical-fixed navbar-expand-xl navbar-bordered  ">
         <div class="navbar-vertical-container">
             <div class="navbar-vertical-footer-offset pb-0">
                 <div class="navbar-brand-wrapper justify-content-between side-logo">
-                    <!-- Logo -->
-                    @php($shop=\App\Model\Shop::where(['seller_id'=>auth('seller')->id()])->first())
-                    <a class="navbar-brand" href="{{route('seller.dashboard.index')}}" aria-label="Front">
+                    @php($shop=Shop::where(['seller_id'=>auth('seller')->id()])->first())
+                    <a class="navbar-brand" href="{{route('vendor.dashboard.index')}}" aria-label="Front">
                         @if (isset($shop))
-                            <img onerror="this.src='{{asset('public/assets/back-end/img/900x400/img1.jpg')}}'"
-                                class="navbar-brand-logo-mini for-seller-logo"
-                                src="{{asset("storage/app/public/shop/$shop->image")}}" alt="Logo">
+                            <img class="navbar-brand-logo-mini for-seller-logo"
+                                 src="{{getValidImage(path: 'storage/app/public/shop/'.$shop->image,type:'backend-logo')}}" alt="{{translate('logo')}}">
                         @else
                             <img class="navbar-brand-logo-mini for-seller-logo"
-                                src="{{asset('public/assets/back-end/img/900x400/img1.jpg')}}" alt="Logo">
+                                 src="{{dynamicAsset(path: 'public/assets/back-end/img/900x400/img1.jpg')}}"
+                                 alt="{{translate('logo')}}">
                         @endif
                     </a>
-                    
-                     <div class="media-body">
-                        <span class="card-title user-name h5">{{auth('seller')->user()->f_name}}</span>
-                        <span class="card-text user-email">{{auth('seller')->user()->email}}</span>
-                    </div>
-                    <!-- End Logo -->
-
-                    <!-- Navbar Vertical Toggle -->
-                    <button type="button" class="d-none js-navbar-vertical-aside-toggle-invoker navbar-vertical-aside-toggle btn btn-icon btn-xs btn-ghost-dark">
+                    <button type="button"
+                            class="d-none js-navbar-vertical-aside-toggle-invoker navbar-vertical-aside-toggle btn btn-icon btn-xs btn-ghost-dark">
                         <i class="tio-clear tio-lg"></i>
                     </button>
-                    <!-- End Navbar Vertical Toggle -->
 
-                    <button type="button" class="js-navbar-vertical-aside-toggle-invoker close" id="toggleButton">
-                                <div class="icon-ball-mobile navbar-vertical-aside-toggle-short-align" data-toggle="tooltip"
-                                    data-placement="left" title="Collapse">&lt;</div>
-                                <div class="icon-ball-mobile navbar-vertical-aside-toggle-full-align"
-                                    data-template='<div class="tooltip d-none d-sm-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'
-                                    data-toggle="tooltip" data-placement="right" title="Expand">&gt;</div>
+                    <button type="button" class="js-navbar-vertical-aside-toggle-invoker close mr-3">
+                        <i class="tio-first-page navbar-vertical-aside-toggle-short-align"></i>
+                        <i class="tio-last-page navbar-vertical-aside-toggle-full-align"
+                           data-template="<div class=&quot;tooltip d-none d-sm-block&quot; role=&quot;tooltip&quot;><div class=&quot;arrow&quot;></div><div class=&quot;tooltip-inner&quot;></div></div>"
+                           ></i>
                     </button>
                 </div>
-
-                <!-- Content -->
                 <div class="navbar-vertical-content">
-                    <!-- Search Form -->
                     <div class="sidebar--search-form pb-3 pt-4">
                         <div class="search--form-group">
                             <button type="button" class="btn"><i class="tio-search"></i></button>
                             <input type="text" class="js-form-search form-control form--control" id="search-bar-input"
-                                   placeholder="{{\App\CPU\translate('search_menu')}}...">
+                                   placeholder="{{translate('search_menu').'...'}}">
                         </div>
                     </div>
                     <ul class="navbar-nav navbar-nav-lg nav-tabs">
-                        <!-- Dashboards -->
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('seller/dashboard')?'show':''}}">
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/dashboard*')?'show':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link"
-                               href="{{route('seller.dashboard.index')}}">
+                               href="{{route('vendor.dashboard.index')}}">
                                 <i class="tio-home-vs-1-outlined nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                    {{\App\CPU\translate('Dashboard')}}
+                                    {{translate('dashboard')}}
                                 </span>
                             </a>
                         </li>
-                        <!-- End Dashboards -->
                         @php($seller = auth('seller')->user())
-                        <!-- POS -->
-                        @php($sellerId = $seller->id)
-                        @php($seller_pos=\App\Model\BusinessSetting::where('type','seller_pos')->first()->value)
-                        @if ($seller_pos==1)
-                            @if ($seller->pos_status == 1)
-                                <li class="nav-item">
-                                    <small
-                                        class="nav-subtitle">{{\App\CPU\translate('pos')}} {{\App\CPU\translate('system')}} </small>
-                                    <small class="tio-more-horizontal nav-subtitle-replacer"></small>
-                                </li>
-                                <li class="navbar-vertical-aside-has-menu {{Request::is('seller/pos')?'active':''}}">
-                                    <a class="js-navbar-vertical-aside-menu-link nav-link" href="{{route('seller.pos.index')}}">
-                                        <i class="tio-shopping nav-icon"></i>
-                                        <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{\App\CPU\translate('POS')}}</span>
-                                    </a>
-                                </li>
-                            @endif
+                        @php($sellerId = $seller['id'])
+                        @php($sellerPOS=getWebConfig('seller_pos'))
+                        @if ($sellerPOS == 1 && $seller['pos_status'] == 1)
+                            <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/pos*')?'active':''}}">
+                                <a class="js-navbar-vertical-aside-menu-link nav-link"
+                                   href="{{route('vendor.pos.index')}}">
+                                    <i class="tio-shopping nav-icon"></i>
+                                    <span
+                                        class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{translate('POS')}}</span>
+                                </a>
+                            </li>
                         @endif
-                        <!-- End POS -->
 
                         <li class="nav-item">
-                            <small class="nav-subtitle">{{\App\CPU\translate('order_management')}}</small>
+                            <small class="nav-subtitle">{{translate('order_management')}}</small>
                             <small class="tio-more-horizontal nav-subtitle-replacer"></small>
                         </li>
-
-                        <!-- Pages -->
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('seller/orders*')?'active':''}}">
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/orders*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:">
                                 <i class="tio-shopping-cart nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                    {{\App\CPU\translate('orders')}}
+                                    {{translate('orders')}}
                                 </span>
                             </a>
-
                             <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
-                                style="display: {{Request::is('seller/order*')?'block':'none'}}">
-
-                                <li class="nav-item {{Request::is('seller/orders/list/all')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.orders.list',['all'])}}" title="">
+                                style="display: {{Request::is('vendor/order*')?'block':'none'}}">
+                                <li class="nav-item {{Request::is('vendor/orders/'.OrderEnum::LIST[URI].'/all')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.orders.list',['all'])}}" title="">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">
-                                            {{\App\CPU\translate('All')}}
-                                            <span class="badge badge-soft-info badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
-                                                {{ \App\Model\Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->count()}}
-                                            </span>
-                                        </span>
-                                    </a>
-                                </li>
-                                <li class="nav-item {{Request::is('seller/orders/list/pending')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.orders.list',['pending'])}}" title="">
-                                        <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate">
-                                            {{\App\CPU\translate('Pending')}}
-                                            <span class="badge badge-soft-info badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
-                                                {{ \App\Model\Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'pending'])->count()}}
-                                            </span>
-                                        </span>
-                                    </a>
-                                </li>
-                                <li class="nav-item {{Request::is('seller/orders/list/confirmed')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.orders.list',['confirmed'])}}" title="">
-                                        <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate">
-                                            {{\App\CPU\translate('confirmed')}}
+                                            {{translate('all')}}
                                             <span
                                                 class="badge badge-soft-info badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
-                                                {{ \App\Model\Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'confirmed'])->count()}}
+                                                {{ Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->count()}}
                                             </span>
                                         </span>
                                     </a>
                                 </li>
-
-                                <li class="nav-item {{Request::is('seller/orders/list/processing')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.orders.list',['processing'])}}" title="">
+                                <li class="nav-item {{Request::is('vendor/orders/'.OrderEnum::LIST[URI].'/pending')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.orders.list',['pending'])}}" title="">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">
-                                            {{\App\CPU\translate('Packaging')}}
-                                            <span class="badge badge-soft-warning badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
-                                                {{ \App\Model\Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'processing'])->count()}}
+                                            {{translate('pending')}}
+                                            <span
+                                                class="badge badge-soft-info badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
+                                                {{ Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'pending'])->count()}}
+                                            </span>
+                                        </span>
+                                    </a>
+                                </li>
+                                <li class="nav-item {{Request::is('vendor/orders/'.OrderEnum::LIST[URI].'/confirmed')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.orders.list',['confirmed'])}}" title="">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">
+                                            {{translate('confirmed')}}
+                                            <span
+                                                class="badge badge-soft-info badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
+                                                {{ Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'confirmed'])->count()}}
                                             </span>
                                         </span>
                                     </a>
                                 </li>
 
-                                <li class="nav-item {{Request::is('seller/orders/list/out_for_delivery')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.orders.list',['out_for_delivery'])}}"
+                                <li class="nav-item {{Request::is('vendor/orders/'.OrderEnum::LIST[URI].'/processing')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.orders.list',['processing'])}}" title="">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">
+                                            {{translate('packaging')}}
+                                            <span
+                                                class="badge badge-soft-warning badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
+                                                {{ Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'processing'])->count()}}
+                                            </span>
+                                        </span>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item {{Request::is('vendor/orders/'.OrderEnum::LIST[URI].'/out_for_delivery')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.orders.list',['out_for_delivery'])}}"
                                        title="">
                                         <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate">
-                                            {{\App\CPU\translate('Out_For_Delivery')}}
-                                            <span class="badge badge-soft-warning badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
-                                                {{ \App\Model\Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'out_for_delivery'])->count()}}
+                                        <span class="text-truncate text-capitalize">
+                                            {{translate('out_for_delivery')}}
+                                            <span
+                                                class="badge badge-soft-warning badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
+                                                {{ Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'out_for_delivery'])->count()}}
                                             </span>
                                         </span>
                                     </a>
                                 </li>
-
-                                <li class="nav-item {{Request::is('seller/orders/list/delivered')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.orders.list',['delivered'])}}" title="">
+                                <li class="nav-item {{Request::is('vendor/orders/'.OrderEnum::LIST[URI].'/delivered')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.orders.list',['delivered'])}}" title="">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">
-                                            {{\App\CPU\translate('Delivered')}}
-                                            <span class="badge badge-soft-success badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
-                                                {{ \App\Model\Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'delivered'])->count()}}
+                                            {{translate('delivered')}}
+                                            <span
+                                                class="badge badge-soft-success badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
+                                                {{ Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'delivered'])->count()}}
                                             </span>
                                         </span>
                                     </a>
                                 </li>
-                                <li class="nav-item {{Request::is('seller/orders/list/returned')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.orders.list',['returned'])}}" title="">
+                                <li class="nav-item {{Request::is('vendor/orders/'.OrderEnum::LIST[URI].'/returned')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.orders.list',['returned'])}}" title="">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">
-                                            {{\App\CPU\translate('Returned')}}
-                                            <span class="badge badge-soft-danger badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
-                                                {{ \App\Model\Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'returned'])->count()}}
+                                            {{translate('returned')}}
+                                            <span
+                                                class="badge badge-soft-danger badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
+                                                {{ Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'returned'])->count()}}
                                             </span>
                                         </span>
                                     </a>
                                 </li>
-                                <li class="nav-item {{Request::is('seller/orders/list/failed')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.orders.list',['failed'])}}" title="">
+                                <li class="nav-item {{Request::is('vendor/orders/'.OrderEnum::LIST[URI].'/failed')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.orders.list',['failed'])}}" title="">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">
-                                            {{\App\CPU\translate('Failed To Deliver')}}
-                                            <span class="badge badge-soft-danger badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
-                                                {{ \App\Model\Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'failed'])->count()}}
+                                            {{translate('failed To Deliver')}}
+                                            <span
+                                                class="badge badge-soft-danger badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
+                                                {{ Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'failed'])->count()}}
                                             </span>
                                         </span>
                                     </a>
                                 </li>
-                                <li class="nav-item {{Request::is('seller/orders/list/canceled')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.orders.list',['canceled'])}}" title="">
+                                <li class="nav-item {{Request::is('vendor/orders/'.OrderEnum::LIST[URI].'/canceled')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.orders.list',['canceled'])}}" title="">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">
-                                            {{\App\CPU\translate('canceled')}}
-                                            <span class="badge badge-soft-danger badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
-                                                {{ \App\Model\Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'canceled'])->count()}}
+                                            {{translate('canceled')}}
+                                            <span
+                                                class="badge badge-soft-danger badge-pill {{Session::get('direction') === "rtl" ? 'mr-1' : 'ml-1'}}">
+                                                {{ Order::where(['seller_is'=>'seller'])->where(['seller_id'=>$sellerId])->where(['order_status'=>'canceled'])->count()}}
                                             </span>
                                         </span>
                                     </a>
@@ -267,25 +199,24 @@
                             </ul>
                         </li>
 
-                        <!--
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('seller/refund*')?'active':''}}">
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/refund*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
                                href="javascript:">
                                 <i class="tio-receipt-outlined nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                    {{\App\CPU\translate('Refund_Request_List')}}
+                                    {{translate('refund_Requests')}}
                                 </span>
                             </a>
                             <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
-                                style="display: {{Request::is('seller/refund*')?'block':'none'}}">
-                                <li class="nav-item {{Request::is('seller/refund/list/pending')?'active':''}}">
+                                style="display: {{Request::is('vendor/refund*')?'block':'none'}}">
+                                <li class="nav-item {{Request::is('vendor/refund/'.Refund::INDEX[URI].'/pending')?'active':''}}">
                                     <a class="nav-link"
-                                       href="{{route('seller.refund.list',['pending'])}}">
+                                       href="{{route('vendor.refund.index',['pending'])}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">
-                                          {{\App\CPU\translate('pending')}}
+                                          {{translate('pending')}}
                                             <span class="badge badge-soft-danger badge-pill ml-1">
-                                                {{\App\Model\RefundRequest::whereHas('order', function ($query) {
+                                                {{RefundRequest::whereHas('order', function ($query) {
                                                     $query->where('seller_is', 'seller')->where('seller_id',auth('seller')->id());
                                                         })->where('status','pending')->count()}}
                                             </span>
@@ -293,42 +224,42 @@
                                     </a>
                                 </li>
 
-                                <li class="nav-item {{Request::is('seller/refund/list/approved')?'active':''}}">
+                                <li class="nav-item {{Request::is('vendor/refund/'.Refund::INDEX[URI].'/approved')?'active':''}}">
                                     <a class="nav-link"
-                                       href="{{route('seller.refund.list',['approved'])}}">
+                                       href="{{route('vendor.refund.index',['approved'])}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">
-                                           {{\App\CPU\translate('approved')}}
+                                           {{translate('approved')}}
                                             <span class="badge badge-soft-info badge-pill ml-1">
-                                                {{\App\Model\RefundRequest::whereHas('order', function ($query) {
+                                                {{RefundRequest::whereHas('order', function ($query) {
                                                     $query->where('seller_is', 'seller')->where('seller_id',auth('seller')->id());
                                                         })->where('status','approved')->count()}}
                                             </span>
                                         </span>
                                     </a>
                                 </li>
-                                <li class="nav-item {{Request::is('seller/refund/list/refunded')?'active':''}}">
+                                <li class="nav-item {{Request::is('vendor/refund/'.Refund::INDEX[URI].'/refunded')?'active':''}}">
                                     <a class="nav-link"
-                                       href="{{route('seller.refund.list',['refunded'])}}">
+                                       href="{{route('vendor.refund.index',['refunded'])}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">
-                                           {{\App\CPU\translate('refunded')}}
+                                           {{translate('refunded')}}
                                             <span class="badge badge-soft-success badge-pill ml-1">
-                                                {{\App\Model\RefundRequest::whereHas('order', function ($query) {
+                                                {{RefundRequest::whereHas('order', function ($query) {
                                                     $query->where('seller_is', 'seller')->where('seller_id',auth('seller')->id());
                                                         })->where('status','refunded')->count()}}
                                             </span>
                                         </span>
                                     </a>
                                 </li>
-                                <li class="nav-item {{Request::is('seller/refund/list/rejected')?'active':''}}">
+                                <li class="nav-item {{Request::is('vendor/refund/'.Refund::INDEX[URI].'/rejected')?'active':''}}">
                                     <a class="nav-link"
-                                       href="{{route('seller.refund.list',['rejected'])}}">
+                                       href="{{route('vendor.refund.index',['rejected'])}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">
-                                           {{\App\CPU\translate('rejected')}}
+                                           {{translate('rejected')}}
                                             <span class="badge badge-danger badge-pill ml-1">
-                                                {{\App\Model\RefundRequest::whereHas('order', function ($query) {
+                                                {{RefundRequest::whereHas('order', function ($query) {
                                                     $query->where('seller_is', 'seller')->where('seller_id',auth('seller')->id());
                                                         })->where('status','rejected')->count()}}
                                             </span>
@@ -337,323 +268,232 @@
                                 </li>
                             </ul>
                         </li>
-                        -->
-                        <!-- End Pages -->
-
                         <li class="nav-item">
-                            <small class="nav-subtitle">{{\App\CPU\translate('product_management')}}</small>
+                            <small class="nav-subtitle">{{translate('product_management')}}</small>
                             <small class="tio-more-horizontal nav-subtitle-replacer"></small>
                         </li>
-
-                        <li class="navbar-vertical-aside-has-menu {{(Request::is('seller/product*'))?'active':''}}">
+                        <li class="navbar-vertical-aside-has-menu {{(Request::is('vendor/product*'))?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:">
                                 <i class="tio-premium-outlined nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                    {{\App\CPU\translate('Products')}}
+                                    {{translate('products')}}
                                 </span>
                             </a>
                             <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
-                                style="display: {{(Request::is('seller/product*'))?'block':''}}">
-                                <li class="nav-item {{Request::is('seller/product/list') || Request::is('seller/product/stock-limit-list/in_house')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.product.list')}}">
+                                style="display: {{(Request::is('vendor/products*'))?'block':''}}">
+                                <li class="nav-item {{Request::is('vendor/products/'.Product::LIST[URI].'/all')|| Request::is('vendor/products/'.Product::UPDATE[URI].'*')||   Request::is('vendor/products/'.Product::VIEW[URI].'*') || Request::is('vendor/products/'.Product::STOCK_LIMIT[URI])?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.products.list',['type'=>'all'])}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate">{{\App\CPU\translate('Products')}}</span>
+                                        <span class="text-truncate text-capitalize">{{translate('product_list')}}</span>
                                     </a>
                                 </li>
-
-                                <li class="nav-item {{Request::is('seller/product/bulk-import')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.product.bulk-import')}}">
+                                <li class="nav-item {{Request::is('vendor/products/'.Product::LIST[URI].'/approved')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.products.list',['type'=>'approved'])}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate">{{\App\CPU\translate('bulk_import')}}</span>
+                                        <span class="text-truncate text-capitalize">{{translate('approved_product_list')}}</span>
                                     </a>
                                 </li>
-                            </ul>
-                        </li>
-
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('seller/reviews/list*')?'active':''}}">
-                            <a class="js-navbar-vertical-aside-menu-link nav-link"
-                               href="{{route('seller.reviews.list')}}">
-                                <i class="tio-star nav-icon"></i>
-                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                    {{\App\CPU\translate('Product')}} {{\App\CPU\translate('Reviews')}}
-                                </span>
-                            </a>
-                        </li>
-<!--
-                        <li class="nav-item">
-                            <small class="nav-subtitle">{{\App\CPU\translate('promotion_management')}}</small>
-                            <small class="tio-more-horizontal nav-subtitle-replacer"></small>
-                        </li>
-
-
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('seller/coupon*')?'active':''}}">
-                            <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
-                               href="javascript:" title="{{\App\CPU\translate('Offers_&_Deals')}}">
-                                <i class="tio-users-switch nav-icon"></i>
-                                <span
-                                    class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{\App\CPU\translate('Offers_&_Deals')}}</span>
-                            </a>
-                            <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
-                                style="display: {{Request::is('seller/coupon*')?'block':'none'}}">
-                                <li class="navbar-vertical-aside-has-menu {{Request::is('seller/coupon*')?'active':''}}">
-                                    <a class="js-navbar-vertical-aside-menu-link nav-link"
-                                       href="{{route('seller.coupon.add-new')}}"
-                                       title="{{\App\CPU\translate('coupon')}}">
+                                <li class="nav-item {{Request::is('vendor/products/'.Product::LIST[URI].'/new-request')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.products.list',['type'=>'new-request'])}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate text-capitalize">{{translate('new_product_request')}}</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item {{Request::is('vendor/products/'.Product::LIST[URI].'/denied')?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.products.list',['type'=>'denied'])}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate text-capitalize">{{translate('denied_product_request')}}</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item {{Request::is('vendor/products/'.Product::ADD[URI])||(Request::is('vendor/products/'.Product::UPDATE[URI].'/*') && request()->has('product-gallery')) ?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.products.add')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span
-                                            class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{\App\CPU\translate('coupon')}}</span>
+                                            class="text-truncate text-capitalize">{{translate('add_new_product')}}</span>
+                                    </a>
+                                </li>
+                                <li class="nav-item {{Request::is('vendor/products/'.Product::PRODUCT_GALLERY[URI])?'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.products.product-gallery')}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span
+                                            class="text-truncate text-capitalize">{{translate('product_gallery')}}</span>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item {{Request::is('vendor/products/'.Product::BULK_IMPORT[URI]) ? 'active':''}}">
+                                    <a class="nav-link " href="{{route('vendor.products.bulk-import')}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">{{translate('bulk_import')}}</span>
                                     </a>
                                 </li>
                             </ul>
                         </li>
--->
-                        <li class="nav-item">
-                            <small class="nav-subtitle">{{\App\CPU\translate('Help_&_Support_Section')}}</small>
-                            <small class="tio-more-horizontal nav-subtitle-replacer"></small>
-                        </li>
-
-
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('seller/messages*')?'active':''}}">
-                            <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
-                               href="javascript:">
-                                <i class="tio-user nav-icon"></i>
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/reviews/'.Review::INDEX[URI].'*')?'active':''}}">
+                            <a class="js-navbar-vertical-aside-menu-link nav-link"
+                               href="{{route('vendor.reviews.index')}}">
+                                <i class="tio-star nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                    {{\App\CPU\translate('messages')}}
+                                    {{translate('product_Reviews')}}
                                 </span>
                             </a>
-                            <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
-                                style="display: {{Request::is('seller/messages*')?'block':'none'}}">
-                                <li class="nav-item {{Request::is('seller/messages/chat/customer')?'active':''}}">
-                                    <a class="nav-link " href="{{route('seller.messages.chat', ['type' => 'customer'])}}">
-                                        <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate">{{\App\CPU\translate('Customer')}}</span>
-                                    </a>
-                                </li>
-                                <!--
-                                <li class="nav-item {{Request::is('seller/messages/chat/delivery-man')?'active':''}}">
-                                    <a class="nav-link" href="{{route('seller.messages.chat', ['type' => 'delivery-man'])}}">
-                                        <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate">{{\App\CPU\translate('Delivery-Man')}}</span>
-                                    </a>
-                                </li>
-                                -->
-                            </ul>
                         </li>
-
-                        <div>
-                        <li class="nav-item {{(Request::is('seller/transaction/order-list')) ? 'scroll-here':''}}">
-                            <small class="nav-subtitle" title="">
-                                {{\App\CPU\translate('Reports')}} & {{\App\CPU\translate('Analysis')}}
-                            </small>
+                        <li class="nav-item">
+                            <small class="nav-subtitle">{{translate('promotion_management')}}</small>
                             <small class="tio-more-horizontal nav-subtitle-replacer"></small>
                         </li>
-
-                        <li class="navbar-vertical-aside-has-menu {{(Request::is('seller/transaction/order-list') || Request::is('seller/transaction/expense-list')) ?'active':''}}">
-                            <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
-                               href="javascript:" title="{{\App\CPU\translate('Sales_&_Transaction_Report')}}">
-                                <i class="tio-chart-bar-4 nav-icon"></i>
-                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                {{\App\CPU\translate('Sales_&_Transaction_Report')}}
-                            </span>
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/coupon*')?'active':''}}">
+                            <a class="nav-link"
+                               href="{{route('vendor.coupon.index')}}" title="{{translate('coupons')}}">
+                                <i class="tio-users-switch nav-icon"></i>
+                                <span
+                                    class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{translate('coupons')}}</span>
                             </a>
-                            <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
-                                style="display: {{(Request::is('seller/transaction/order-list') || Request::is('seller/transaction/expense-list')) ?'block':'none'}}">
-                                <li class="navbar-vertical-aside-has-menu {{(Request::is('seller/transaction/order-list') || Request::is('seller/transaction/expense-list') || Request::is('seller/transaction/order-history-log*'))?'active':''}}">
-                                    <a class="js-navbar-vertical-aside-menu-link nav-link"
-                                       href="{{route('seller.transaction.order-list')}}"
-                                       title="{{\App\CPU\translate('Transaction_Report')}}">
-                                        <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                     {{\App\CPU\translate('Transaction_Report')}}
+                        </li>
+                        <li class="nav-item">
+                            <small class="nav-subtitle">{{translate('help_&_support')}}</small>
+                            <small class="tio-more-horizontal nav-subtitle-replacer"></small>
+                        </li>
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/messages*')?'active':''}}">
+                            <a class="nav-link"
+                               href="{{route('vendor.messages.index', ['type' => 'customer'])}}">
+                                <i class="tio-chat nav-icon"></i>
+                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
+                                        {{translate('inbox')}}
                                     </span>
-                                    </a>
-                                </li>
-                            </ul>
-                        </li>
-
-                        <li class="navbar-vertical-aside-has-menu {{ (Request::is('seller/report/all-product') ||Request::is('seller/report/stock-product-report')) ?'active':''}}">
-                            <a class="js-navbar-vertical-aside-menu-link nav-link"
-                               href="{{route('seller.report.all-product')}}" title="{{\App\CPU\translate('Product_Report')}}">
-                                <i class="tio-chart-bar-4 nav-icon"></i>
-                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                            <span class="position-relative">
-                                {{\App\CPU\translate('Product_Report')}}
-                            </span>
-                        </span>
                             </a>
                         </li>
-
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('seller/report/order-report')?'active':''}}">
+                        <li class="nav-item {{(Request::is('vendor/transaction/order-list')) ? 'scroll-here':''}}">
+                            <small class="nav-subtitle">{{translate('reports_&_analytics')}}</small>
+                            <small class="tio-more-horizontal nav-subtitle-replacer"></small>
+                        </li>
+                        <li class="navbar-vertical-aside-has-menu {{(Request::is('vendor/transaction/order-list') || Request::is('vendor/transaction/expense-list') || Request::is('vendor/transaction/order-history-log*'))?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link"
-                               href="{{route('seller.report.order-report')}}"
-                               title="{{\App\CPU\translate('Order')}} {{\App\CPU\translate('Report')}}">
+                               href="{{route('vendor.transaction.order-list')}}"
+                               title="{{translate('transactions_Report')}}">
+                                <i class="tio-chart-bar-3 nav-icon"></i>
+                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate text-capitalize">
+                                    {{translate('transactions_Report')}}
+                                </span>
+                            </a>
+                        </li>
+                        <li class="navbar-vertical-aside-has-menu {{ (Request::is('vendor/report/all-product') ||Request::is('vendor/report/stock-product-report')) ?'active':''}}">
+                            <a class="js-navbar-vertical-aside-menu-link nav-link text-capitalize"
+                               href="{{route('vendor.report.all-product')}}" title="{{translate('product_report')}}">
+                                <i class="tio-chart-bar-4 nav-icon"></i>
+                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
+                                    <span class="position-relative text-capitalize">
+                                        {{translate('product_report')}}
+                                    </span>
+                                </span>
+                            </a>
+                        </li>
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/report/order-report')?'active':''}}">
+                            <a class="js-navbar-vertical-aside-menu-link nav-link text-capitalize"
+                               href="{{route('vendor.report.order-report')}}"
+                               title="{{translate('order_report')}}">
                                 <i class="tio-chart-bar-1 nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                             {{\App\CPU\translate('Order_Report')}}
+                             {{translate('order_Report')}}
                             </span>
                             </a>
                         </li>
-                        </div>
-
-                        <!-- End Pages -->
-                        <li class="nav-item {{( Request::is('seller/business-settings*'))?'scroll-here':''}}">
-                            <small class="nav-subtitle" title="">{{\App\CPU\translate('business_section')}}</small>
+                        <li class="nav-item {{( Request::is('vendor/business-settings*'))?'scroll-here':''}}">
+                            <small class="nav-subtitle" title="">{{translate('business_section')}}</small>
                             <small class="tio-more-horizontal nav-subtitle-replacer"></small>
                         </li>
-                        @php($shippingMethod = \App\CPU\Helpers::get_business_settings('shipping_method'))
+                        @php($shippingMethod = getWebConfig('shipping_method'))
                         @if($shippingMethod=='sellerwise_shipping')
-                            <li class="navbar-vertical-aside-has-menu {{Request::is('seller/business-settings/shipping-method*')?'active':''}}">
+                            <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/business-settings/shipping-method*')?'active':''}}">
                                 <a class="js-navbar-vertical-aside-menu-link nav-link"
-                                   href="{{route('seller.business-settings.shipping-method.add')}}">
+                                   href="{{route('vendor.business-settings.shipping-method.index')}}">
                                     <i class="tio-settings nav-icon"></i>
-                                    <span
-                                        class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate text-capitalize">
-                                        {{\App\CPU\translate('shipping_method')}}
+                                    <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate text-capitalize text-capitalize">
+                                        {{translate('shipping_methods')}}
                                     </span>
                                 </a>
                             </li>
                         @endif
-<!--
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('seller/business-settings/withdraw*')?'active':''}}">
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/business-settings/withdraw*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link"
-                               href="{{route('seller.business-settings.withdraw.list')}}">
+                               href="{{route('vendor.business-settings.withdraw.index')}}">
                                 <i class="tio-wallet-outlined nav-icon"></i>
+                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate text-capitalize">
+                                        {{translate('withdraws')}}
+                                </span>
+                            </a>
+                        </li>
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/profile/'.Profile::INDEX[URI]) || Request::is('vendor/profile/'.Profile::BANK_INFO_UPDATE[URI]) ?'active':''}}">
+                            <a class="js-navbar-vertical-aside-menu-link nav-link"
+                               href="{{route('vendor.profile.index')}}">
+                                <i class="tio-shop nav-icon"></i>
+                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate text-capitalize">
+                                    {{translate('bank_Information')}}
+                                </span>
+                            </a>
+                        </li>
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/shop*')?'active':''}}">
+                            <a class="js-navbar-vertical-aside-menu-link nav-link"
+                               href="{{route('vendor.shop.index')}}">
+                                <i class="tio-home nav-icon"></i>
                                 <span
                                     class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate text-capitalize">
-                                        {{\App\CPU\translate('withdraws')}}
-                                    </span>
-                            </a>
-                        </li>
-
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('seller/profile/view') || Request::is('seller/profile/bank-edit/*') ?'active':''}}">
-                            <a class="js-navbar-vertical-aside-menu-link nav-link"
-                               href="{{route('seller.profile.view')}}">
-                                <i class="tio-shop nav-icon"></i>
-                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                    {{\App\CPU\translate('My_Bank_Info')}}
+                                    {{translate('shop_Settings')}}
                                 </span>
                             </a>
                         </li>
--->
-                        <div class="My-Shop">
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('seller/shop*')?'active':''}}">
-                            <a class="js-navbar-vertical-aside-menu-link nav-link"
-                               href="{{route('seller.shop.view')}}">
-                                <i class="tio-home nav-icon"></i>
-                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                    {{\App\CPU\translate('My_Shop')}}
-                                </span>
-                            </a>
-                        </li>
-                        </div>
-                        @php( $shipping_method = \App\CPU\Helpers::get_business_settings('shipping_method'))
-                        @if($shipping_method=='sellerwise_shipping')
-                            <li class="nav-item {{Request::is('seller/delivery-man*')?'scroll-here':''}}">
-                                <small class="nav-subtitle">{{\App\CPU\translate('delivery_man_management')}}</small>
+                        @php( $shippingMethod = getWebConfig('shipping_method'))
+                        @if($shippingMethod=='sellerwise_shipping')
+                            <li class="nav-item {{Request::is('vendor/delivery-man*')?'scroll-here':''}}">
+                                <small class="nav-subtitle">{{translate('delivery_man_management')}}</small>
                                 <small class="tio-more-horizontal nav-subtitle-replacer"></small>
                             </li>
-                            <li class="navbar-vertical-aside-has-menu {{Request::is('seller/delivery-man*')?'active':''}}">
+                            <li class="navbar-vertical-aside-has-menu {{Request::is('vendor/delivery-man*')?'active':''}}">
                                 <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
                                    href="javascript:">
                                     <i class="tio-user nav-icon"></i>
                                     <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-                                    {{\App\CPU\translate('Delivery-Man')}}
+                                    {{translate('delivery-Man')}}
                                 </span>
                                 </a>
                                 <ul class="js-navbar-vertical-aside-submenu nav nav-sub"
-                                    style="display: {{Request::is('seller/delivery-man*')?'block':'none'}}">
-                                    <li class="nav-item {{Request::is('seller/delivery-man/add')?'active':''}}">
-                                        <a class="nav-link " href="{{route('seller.delivery-man.add')}}">
+                                    style="display: {{Request::is('vendor/delivery-man*')?'block':'none'}}">
+                                    <li class="nav-item {{Request::is('vendor/delivery-man/'.DeliveryMan::INDEX[URI])?'active':''}}">
+                                        <a class="nav-link " href="{{route('vendor.delivery-man.index')}}">
                                             <span class="tio-circle nav-indicator-icon"></span>
-                                            <span class="text-truncate">{{\App\CPU\translate('Add_New')}}</span>
+                                            <span class="text-truncate text-capitalize">{{translate('add_new')}}</span>
                                         </a>
                                     </li>
-                                    <li class="nav-item {{Request::is('seller/delivery-man/list') || Request::is('seller/delivery-man/earning-statement*') || Request::is('seller/delivery-man/earning-active-log*') || Request::is('seller/delivery-man/order-wise-earning*')?'active':''}}">
-                                        <a class="nav-link" href="{{route('seller.delivery-man.list')}}">
+                                    <li class="nav-item {{ Request::is('vendor/delivery-man/'.DeliveryMan::LIST[URI]) || Request::is('vendor/delivery-man/'.DeliveryMan::UPDATE[URI])  ||Request::is('vendor/delivery-man/'.DeliveryMan::RATING[URI].'/*') ||  Request::is('vendor/delivery-man/wallet*') ? 'active':''}}">
+                                        <a class="nav-link" href="{{route('vendor.delivery-man.list')}}">
                                             <span class="tio-circle nav-indicator-icon"></span>
-                                            <span class="text-truncate">{{\App\CPU\translate('List')}}</span>
+                                            <span class="text-truncate">{{translate('list')}}</span>
                                         </a>
                                     </li>
-                                    <li class="nav-item {{Request::is('seller/delivery-man/withdraw-list') || Request::is('seller/delivery-man/withdraw-view*')?'active':''}}">
-                                        <a class="nav-link " href="{{route('seller.delivery-man.withdraw-list')}}"
-                                           title="{{\App\CPU\translate('withdraws')}}">
+                                    <li class="nav-item {{Request::is('vendor/delivery-man/withdraw/*')?'active':''}}">
+                                        <a class="nav-link " href="{{route('vendor.delivery-man.withdraw.index')}}"
+                                           title="{{translate('withdraws')}}">
                                             <span class="tio-circle nav-indicator-icon"></span>
-                                            <span class="text-truncate">{{\App\CPU\translate('withdraws')}}</span>
+                                            <span class="text-truncate">{{translate('withdraws')}}</span>
                                         </a>
                                     </li>
 
-                                    <li class="nav-item {{Request::is('seller/delivery-man/emergency-contact/') ? 'active' : ''}}">
-                                        <a class="nav-link " href="{{route('seller.delivery-man.emergency-contact.index')}}"
-                                           title="{{\App\CPU\translate('withdraws')}}">
+                                    <li class="nav-item {{Request::is('vendor/delivery-man/emergency-contact/*') ? 'active' : ''}}">
+                                        <a class="nav-link "
+                                           href="{{route('vendor.delivery-man.emergency-contact.index')}}"
+                                           title="{{translate('withdraws')}}">
                                             <span class="tio-circle nav-indicator-icon"></span>
-                                            <span class="text-truncate">{{\App\CPU\translate('Emergency_Contact')}}</span>
+                                            <span
+                                                class="text-truncate text-capitalize">{{translate('emergency_contact')}}</span>
                                         </a>
                                     </li>
                                 </ul>
                             </li>
                         @endif
-                        
-                        <li class="navbar-vertical-aside-has-menu" id="logoutButton">
-                            <a class="js-navbar-vertical-aside-menu-link nav-link" href="javascript:" onclick="Swal.fire({
-                                    title: '{{\App\CPU\translate('Do you want to logout')}}?',
-                                    showDenyButton: true,
-                                    showCancelButton: true,
-                                    confirmButtonColor: '#377dff',
-                                    cancelButtonColor: '#363636',
-                                    confirmButtonText: `Yes`,
-                                    denyButtonText: `Don't Logout`,
-                                    }).then((result) => {
-                                    if (result.value) {
-                                    location.href='{{route('seller.auth.logout')}}';
-                                    } else{
-                                    Swal.fire('Canceled', '', 'info')
-                                    }
-                                    })">
-                               <i class="tio-sign-out nav-icon"></i>
-                                <span class="position-relative">
-                                    {{\App\CPU\translate('Sign out')}}
-                                </span>
-                            </a>
-                        </li>
-                        
                     </ul>
                 </div>
-                <!-- End Content -->
             </div>
         </div>
     </aside>
 </div>
 
-@push('script_2')
-    <script>
-    
-        $('.js-navbar-vertical-aside-toggle-invoker').on('click', function() {
-          $('aside').css('transform', 'translateX(0)');
-        });
-    
-        $(window).on('load' , function() {
-            if($(".navbar-vertical-content li.active").length) {
-                $('.navbar-vertical-content').animate({
-                    scrollTop: $(".navbar-vertical-content li.active").offset().top - 150
-                }, 10);
-            }
-        });
-        //Sidebar Menu Search
-        var $rows = $('.navbar-vertical-content li');
-        $('#search-bar-input').keyup(function() {
-            var val = $.trim($(this).val()).replace(/ +/g, ' ').toLowerCase();
 
-            $rows.show().filter(function() {
-                var text = $(this).text().replace(/\s+/g, ' ').toLowerCase();
-                return !~text.indexOf(val);
-            }).hide();
-        });
-        
-         window.onload = function() {
-            
-                var button = document.getElementById('toggleButton');
-                button.style.display = 'block'; 
-             
-        };
-    </script>
-@endpush

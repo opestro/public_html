@@ -2,13 +2,12 @@
 
 namespace App\Http\Controllers\Customer\Auth;
 
-use App\CPU\CartManager;
-use App\CPU\Helpers;
+use App\Utils\Helpers;
 use App\Http\Controllers\Controller;
-use App\Model\BusinessSetting;
-use App\Model\Wishlist;
-use App\Model\Stat;
+use App\Models\BusinessSetting;
+use App\Models\Wishlist;
 use App\User;
+use App\Utils\CartManager;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -49,16 +48,12 @@ class SocialAuthController extends Controller
                 'social_id' => $user_data->id,
                 'is_phone_verified' => 0,
                 'is_email_verified' => 1,
+                'referral_code' => Helpers::generate_referer_code(),
                 'temporary_token' => Str::random(40)
             ]);
         } else {
             $user->temporary_token = Str::random(40);
             $user->save();
-        }
-        
-        $stats = Stat::find(1);
-        if ($stats) {
-            $stats->increment('customers', 1);
         }
 
         /*if ($user->phone == '') {
@@ -83,11 +78,11 @@ class SocialAuthController extends Controller
             'l_name' => 'required',
             'phone' => 'required|unique:users|min:11',
         ], [
-            'f_name.required' => 'First Name is Required',
-            'l_name.required' => 'Last Name is Required',
-            'phone.required' => 'Phone Number is Required',
-            'unique' => 'Phone Number Must Be Unique!',
-            'phone.min' => 'Phone Number Should be Minimum of 11 Character'
+            'f_name.required' => translate('first_name_is_required'),
+            'l_name.required' => translate('last_name_is_required'),
+            'phone.required' => translate('phone_number_is_required'),
+            'unique' => translate('phone_number_must_be_unique').'!',
+            'phone.min' => translate('phone_number_should_be_minimum_of_11_character')
         ]);
 
         $user = User::find($request->id);
@@ -104,16 +99,18 @@ class SocialAuthController extends Controller
     {
         $company_name = BusinessSetting::where('type', 'company_name')->first();
 
-        if ($user->is_active && auth('customer')->attempt(['email' => $email, 'password' => $password], true)) {
+        if ($user->is_active) {
+            auth('customer')->login($user);
             $wish_list = Wishlist::whereHas('wishlistProduct',function($q){
                 return $q;
             })->where('customer_id', $user->id)->pluck('product_id')->toArray();
 
+            session()->forget('wish_list');
             session()->put('wish_list', $wish_list);
-            $message = 'Welcome to ' . $company_name->value . '!';
+            $message = translate('welcome_to').' ' . $company_name->value . '!';
             CartManager::cart_to_db();
         } else {
-            $message = 'Credentials are not matched or your account is not active!';
+            $message = translate('credentials_are_not_matched_or_your_account_is_not_active').'!';
         }
 
         return $message;

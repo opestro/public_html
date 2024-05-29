@@ -87,12 +87,12 @@ return [
 
         'admins' => [
             'driver' => 'eloquent',
-            'model' => App\Model\Admin::class,
+            'model' => \App\Models\Admin::class,
         ],
 
         'sellers' => [
             'driver' => 'eloquent',
-            'model' => App\Model\Seller::class,
+            'model' => \App\Models\Seller::class,
         ],
 
         // 'users' => [

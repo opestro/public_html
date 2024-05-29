@@ -22,7 +22,7 @@ class CreateRefundRequestsTable extends Migration
             $table->unsignedBigInteger('product_id');
             $table->unsignedBigInteger('order_id');
             $table->longText('refund_reason');
-            $table->string('images')->nullable();
+            $table->text('images')->nullable();
             $table->timestamps();
         });
     }

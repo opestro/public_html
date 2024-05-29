@@ -2,138 +2,130 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\CPU\ImageManager;
+use App\Contracts\Repositories\OrderRepositoryInterface;
+use App\Contracts\Repositories\ReviewRepositoryInterface;
 use App\Http\Controllers\Controller;
-use App\Model\Order;
-use App\Model\OrderDetail;
-use App\Model\Review;
-use App\Model\Product;
+use App\Models\Review;
+use App\Traits\FileManagerTrait;
+use App\Utils\ImageManager;
 use Brian2694\Toastr\Facades\Toastr;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Storage;
-use function App\CPU\translate;
+use function React\Promise\all;
 
 class ReviewController extends Controller
 {
-    public function store(Request $request)
+    use FileManagerTrait;
+
+    public function __construct(
+        private readonly ReviewRepositoryInterface $reviewRepo,
+        private readonly OrderRepositoryInterface  $orderRepo,
+    )
+    {}
+
+    public function add(Request $request): RedirectResponse
     {
-        $image_array = [];
+        $request->validate([
+            'rating' => 'required',
+            'comment' => 'required',
+        ], [
+            'rating.required' => translate('please_rate_the_quality') . '!',
+            'comment.required' => translate('The_comment_is_required') . '!',
+        ]);
+
+        $imageArray = [];
         if ($request->has('fileUpload')) {
             foreach ($request->file('fileUpload') as $image) {
-                array_push($image_array, ImageManager::upload('review/', 'png', $image));
+                $imageArray[] = $this->upload(dir: 'review/', format: 'webp', image: $image);
             }
         }
+        $review = $this->reviewRepo->getFirstWhere(params: ['customer_id' => auth('customer')->id(),'id'=>$request['review_id']]);
+        if ($review && $review['attachment'] && $request->has('fileUpload')) {
+            foreach (json_decode($review['attachment']) as $image) {
+                $this->delete(filePath: '/review/' . $image);
+            }
+        }
+        $dataArray = [
+            'customer_id' => auth('customer')->id(),
+            'product_id' => $request['product_id'],
+            'order_id' => $request['order_id'],
+            'comment' => $request['comment'],
+            'rating' => $request['rating'],
+            'attachment' => $request->has('fileUpload') ? json_encode($imageArray) : ($review->attachment ?? null),
+            'updated_at' => now(),
+            'created_at' => $review->created_at ?? now()
+        ];
 
-        Review::updateOrCreate(
-            [
-                'delivery_man_id' => null,
-                'customer_id' => auth('customer')->id(),
-                'product_id' => $request->product_id
-            ],
-            [
-                'customer_id' => auth('customer')->id(),
-                'product_id' => $request->product_id,
-                'comment' => $request->comment,
-                'rating' => $request->rating,
-                'attachment' => json_encode($image_array),
-            ]
-        );
+        if ($request['review_id']) {
+            $this->reviewRepo->updateWhere(params: ['id' => $request['review_id']], data: $dataArray);
+        } else {
+            $this->reviewRepo->add(data: $dataArray);
+        }
 
         Toastr::success(translate('successfully_added_review'));
-        return redirect()->route('account-order-details', ['id' => $request->order_id]);
+        return redirect()->back();
     }
-    public function store_customer(Request $request)
-    {
-         $image_array = [];
 
-        Review::updateOrCreate(
-            [
-                'delivery_man_id' => null,
-                'customer_id' => auth('customer')->id(),
-                'product_id' => $request->product_id
-            ],
-            [
-                'customer_id' => auth('customer')->id(),
-                'product_id' => $request->product_id,
-                'comment' => $request->comment,
-                'rating' => $request->rating,
-                 'attachment' => json_encode($image_array),
-            ]
+    public function addDeliveryManReview(Request $request): RedirectResponse
+    {
+        $order = $this->orderRepo->getFirstWhere(params: ['id' => $request['order_id'], 'customer_id' => auth('customer')->id(), 'payment_status' => 'paid']);
+        if (!isset($order->delivery_man_id)) {
+            Toastr::error(translate('Invalid_review'));
+            return redirect('/');
+        }
+
+        if ($request['rating'] == 0) {
+            Toastr::error(translate('please_select_ratting'));
+            return back();
+        }
+
+        $review = $this->reviewRepo->getFirstWhere(params: [
+            'delivery_man_id' => $order['delivery_man_id'],
+            'customer_id' => auth('customer')->id(),
+            'order_id' => $request['order_id'],
+        ]);
+
+        $dataArray = [
+            'customer_id' => auth('customer')->id(),
+            'delivery_man_id' => $order['delivery_man_id'],
+            'order_id' => $request['order_id'],
+            'comment' => $request['comment'],
+            'rating' => $request['rating'],
+            'updated_at' => now(),
+        ];
+
+        if (!$review) {
+            $dataArray['created_at'] = now();
+        }
+
+        $this->reviewRepo->updateOrInsert(params: [
+            'delivery_man_id' => $order['delivery_man_id'],
+            'customer_id' => auth('customer')->id(),
+            'order_id' => $request['order_id']
+        ], data: $dataArray
         );
 
         Toastr::success(translate('successfully_added_review'));
         return back();
     }
 
-
-    public function addReviewsToProducts()
+    public function deleteReviewImage(Request $request): JsonResponse
     {
-        
-        $products = Product::where('id', '>', 2616)->get();
-    
+        $review = Review::find($request['id']);
 
-        foreach ($products as $product) {
-            Review::updateOrCreate(
-                [
-                    'customer_id' => 26,
-                    'product_id' => $product->id,
-                ],
-                [
-                    'customer_id' => 26,
-                    'product_id' => $product->id,
-                    'comment' => '',
-                    'rating' => rand(4, 5), 
-                    'attachment' => json_encode([]), 
-                ]
-            );
-        }
-    
-        // Optionally, you can return a response or do other operations here
-        return response()->json(['message' => 'Reviews added successfully']);
-    }
-    
-    public function delivery_man_review(Request $request, $id)
-    {
-        $order = Order::where(['id' => $id, 'customer_id' => auth('customer')->id(), 'payment_status' => 'paid'])->first();
-
-        if (!$order) {
-            Toastr::error(translate('Invalid order!'));
-            return redirect('/');
+        $array = [];
+        foreach (json_decode($review['attachment']) as $image) {
+            if ($image != $request['name']) {
+                $array[] = $image;
+            }else{
+                ImageManager::delete('review/' . $request['name']);
+            }
         }
 
-        return view('web-views.users-profile.submit-delivery-man-review', compact('order'));
+        $review->attachment = json_encode($array);
+        $review->save();
+        return response()->json(['message' => translate('review_image_removed_successfully')], 200);
     }
 
-    public function delivery_man_submit(Request $request)
-    {
-
-        $order = Order::where([
-            'id' => $request->order_id,
-            'customer_id' => auth('customer')->id(),
-            'payment_status' => 'paid'])->first();
-
-        if (!isset($order->delivery_man_id)) {
-            Toastr::error(translate('Invalid review!'));
-            return redirect('/');
-        }
-        Review::updateOrCreate(
-            ['delivery_man_id' => $order->delivery_man_id,
-                'customer_id' => auth('customer')->id(),
-                'order_id' => $request->order_id
-            ],
-            [
-                'customer_id' => auth('customer')->id(),
-                'delivery_man_id' => $order->delivery_man_id,
-                'order_id' => $request->order_id,
-                'comment' => $request->comment,
-                'rating' => $request->rating,
-            ]
-        );
-
-        Toastr::success(translate('successfully_added_review'));
-        if(theme_root_path() == "theme_aster"){
-            return redirect()->back();
-        }
-        return redirect()->route('account-order-details', ['id' => $order->id]);
-    }
 }

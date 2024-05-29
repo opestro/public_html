@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use App\Utils\Helpers;
 use Illuminate\Support\Facades\Auth;
 
 class SellerMiddleware
@@ -20,6 +21,7 @@ class SellerMiddleware
             return $next($request);
         }
         auth()->guard('seller')->logout();
-        return redirect()->route('seller.auth.login');
+
+        return redirect()->route('vendor.auth.login');
     }
 }

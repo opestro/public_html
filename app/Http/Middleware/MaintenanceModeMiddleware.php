@@ -2,8 +2,9 @@
 
 namespace App\Http\Middleware;
 
-use App\CPU\Helpers;
+use App\Utils\Helpers;
 use Closure;
+use Illuminate\Support\Facades\Auth;
 
 class MaintenanceModeMiddleware
 {
@@ -18,6 +19,9 @@ class MaintenanceModeMiddleware
     {
         $maintenance_mode = Helpers::get_business_settings('maintenance_mode') ?? 0;
         if ($maintenance_mode) {
+            if (Auth::guard('admin')->check()) {
+                return $next($request);
+            }
             return redirect()->route('maintenance-mode');
         }
         return $next($request);

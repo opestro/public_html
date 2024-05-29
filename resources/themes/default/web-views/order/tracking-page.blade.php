@@ -1,34 +1,32 @@
 @extends('layouts.front-end.app')
 
-@section('title',\App\CPU\translate('Track Order Result'))
+@section('title', translate('track_Order_Result'))
 
 @push('css_or_js')
-    <meta property="og:image" content="{{asset('storage/app/public/company')}}/{{$web_config['web_logo']->value}}"/>
+    <meta property="og:image" content="{{dynamicStorage(path: 'storage/app/public/company')}}/{{$web_config['web_logo']->value}}"/>
     <meta property="og:title" content="{{$web_config['name']->value}} "/>
     <meta property="og:url" content="{{env('APP_URL')}}">
-    <meta property="og:description" content="{!! substr($web_config['about']->value,0,100) !!}">
-
-    <meta property="twitter:card" content="{{asset('storage/app/public/company')}}/{{$web_config['web_logo']->value}}"/>
+    <meta property="og:description" content="{{ substr(strip_tags(str_replace('&nbsp;', ' ', $web_config['about']->value)),0,160) }}">
+    <meta property="twitter:card" content="{{dynamicStorage(path: 'storage/app/public/company')}}/{{$web_config['web_logo']->value}}"/>
     <meta property="twitter:title" content="{{$web_config['name']->value}}"/>
     <meta property="twitter:url" content="{{env('APP_URL')}}">
-    <meta property="twitter:description" content="{!! substr($web_config['about']->value,0,100) !!}">
-    <link rel="stylesheet" media="screen"
-          href="{{asset('public/assets/front-end')}}/vendor/nouislider/distribute/nouislider.min.css"/>
-    <style>
-       .closet{
-            float: {{Session::get('direction') === "rtl" ? 'left' : 'right'}};
-        }
-    </style>
+    <meta property="twitter:description" content="{{ substr(strip_tags(str_replace('&nbsp;', ' ', $web_config['about']->value)),0,160) }}">
+    <link rel="stylesheet" media="screen" href="{{theme_asset(path: 'public/assets/front-end/vendor/nouislider/distribute/nouislider.min.css')}}"/>
 @endpush
 
 @section('content')
-    <!-- Page Content-->
-    <div class="container rtl py-5" style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};">
-        <div class="__max-w-620 mx-auto">
-            <h3 class="text-center text-capitalize">{{\App\CPU\translate('track_order')}}</h3>
-            <div class="card __card">
-                <div class="card-body">
-                    <form action="{{route('track-order.result')}}" type="submit" method="post" class="p-3">
+    <div class="container rtl pt-4 pb-5 text-align-direction tracking-page">
+        <div class="card border-0 box-shadow-lg">
+            <div class="card-body py-5">
+                <h6 class="text-end small font-bold fs-14">
+                    <a href="{{ route('track-order.index') }}">
+                        <span class="text-primary"><i class="tio-refresh"></i></span>
+                        {{ translate('clear') }}
+                    </a>
+                </h6>
+                <div class="mw-1000 mx-auto">
+                    <h3 class="text-center text-capitalize font-bold fs-25">{{translate('track_order')}}</h3>
+                    <form action="{{ route('track-order.result') }}" type="submit" method="post" class="p-3">
                         @csrf
 
                         @if(session()->has('Error'))
@@ -37,17 +35,24 @@
                                 <strong>{{ session()->get('Error') }}</strong>
                             </div>
                         @endif
-
-                        <div class="form-group mb-4">
-                            <input class="form-control prepended-form-control" type="text" name="order_id"
-                                placeholder="{{\App\CPU\translate('order_id')}}" required>
+                        <div class="row g-3">
+                            <div class="col-md-4 col-sm-6">
+                                <input class="form-control form-control-sm prepended-form-control" type="number" value="{{ request('order_id') }}" name="order_id"
+                                    placeholder="{{translate('order_id')}}" required>
+                            </div>
+                            <div class="col-md-4 col-sm-6">
+                                <input class="form-control form-control-sm prepended-form-control" name="phone_number" type="tel" value="{{ request('phone_number') }}"
+                                    placeholder="{{translate('your_phone_number')}}" required>
+                            </div>
+                            <div class="col-md-4">
+                                <button class="btn btn--primary btn-sm w-100 font-bold" type="submit" name="trackOrder">{{translate('track_order')}}</button>
+                            </div>
                         </div>
-                        <div class="form-group mb-4">
-                            <input class="form-control prepended-form-control" type="text" name="phone_number"
-                                placeholder="{{\App\CPU\translate('your_phone_number')}}" required>
-                        </div>
-                        <div class="text-right">
-                            <button class="btn btn--primary" type="submit" name="trackOrder">{{\App\CPU\translate('track_order')}}</button>
+                        <div class="mt-5 pt-md-5 mx-auto text-center max-width-350px">
+                            <img class="mb-2" src="{{theme_asset(path: 'public/assets/front-end/img/track-truck.svg')}}" alt="">
+                            <div class="opacity-50">
+                                {{translate('enter_your_order_ID_&_phone_number_to_get_delivery_updates')}}
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -59,6 +64,5 @@
 
 
 @push('script')
-    <script src="{{asset('public/assets/front-end')}}/vendor/nouislider/distribute/nouislider.min.js">
-    </script>
+    <script src="{{theme_asset(path: 'public/assets/front-end/vendor/nouislider/distribute/nouislider.min.js')}}"></script>
 @endpush

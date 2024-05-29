@@ -1,70 +1,65 @@
+@php
+    use Illuminate\Support\Str;
+@endphp
 @extends('layouts.back-end.app')
-
-@section('title', \App\CPU\translate('Add new notification'))
-
+@section('title', translate('add_new_notification'))
 @push('css_or_js')
-
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 @endpush
-
 @section('content')
     <div class="content container-fluid">
-        <!-- Page Title -->
         <div class="mb-3">
             <h2 class="h1 mb-0 text-capitalize d-flex align-items-center gap-2">
-                <img width="20" src="{{asset('/public/assets/back-end/img/push_notification.png')}}" alt="">
-                {{\App\CPU\translate('push_notification')}}
+                <img width="20" src="{{dynamicAsset(path: 'public/assets/back-end/img/push_notification.png')}}" alt="">
+                {{translate('send_notification')}}
             </h2>
         </div>
-        <!-- End Page Title -->
-
-        <!-- End Page Header -->
         <div class="row gx-2 gx-lg-3">
             <div class="col-sm-12 col-lg-12 mb-3 mb-lg-2">
                 <div class="card">
                     <div class="card-body">
-                        <form action="{{route('admin.notification.store')}}" method="post"
-                              style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};"
+                        <form action="{{route('admin.notification.index')}}" method="post" class="text-start"
                               enctype="multipart/form-data">
                             @csrf
-
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label class="title-color text-capitalize"
-                                               for="exampleFormControlInput1">{{\App\CPU\translate('Title')}} </label>
+                                               for="exampleFormControlInput1">{{translate('title')}} </label>
                                         <input type="text" name="title" class="form-control"
-                                               placeholder="{{\App\CPU\translate('New notification')}}"
+                                               placeholder="{{translate('new_notification')}}"
                                                required>
                                     </div>
                                     <div class="form-group">
                                         <label class="title-color text-capitalize"
-                                               for="exampleFormControlInput1">{{\App\CPU\translate('Description')}} </label>
-                                        <textarea name="description" class="form-control" required></textarea>
+                                               for="exampleFormControlInput1">{{translate('description')}} </label>
+                                        <textarea name="description" class="form-control text-area-max-min" required></textarea>
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
-                                        <center>
+                                        <div class="d-flex justify-content-center">
                                             <img class="upload-img-view mb-4" id="viewer"
-                                                 onerror="this.src='{{asset('public/assets/front-end/img/image-place-holder.png')}}'"
-                                                 src="{{asset('public/assets/admin/img/900x400/img1.jpg')}}"
-                                                 alt="image"/>
-                                        </center>
+                                                 src="{{dynamicAsset(path: 'public/assets/back-end/img/900x400/img1.jpg')}}"
+                                                 alt="{{translate('image')}}"/>
+                                        </div>
                                         <label
-                                            class="title-color text-capitalize">{{\App\CPU\translate('Image')}} </label>
-                                        <span class="text-info">({{\App\CPU\translate('Ratio_1:1')}})</span>
+                                            class="title-color text-capitalize">{{translate('image')}} </label>
+                                        <span class="text-info">({{translate('ratio').'1:1'}})</span>
                                         <div class="custom-file text-left">
-                                            <input type="file" name="image" id="customFileEg1" class="custom-file-input"
+                                            <input type="file" name="image" class="custom-file-input image-input"
+                                                   data-image-id="viewer"
                                                    accept=".jpg, .png, .jpeg, .gif, .bmp, .tif, .tiff|image/*">
                                             <label class="custom-file-label"
-                                                   for="customFileEg1">{{\App\CPU\translate('Choose file')}}</label>
+                                                   for="customFileEg1">{{translate('choose_File')}}</label>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="d-flex justify-content-end gap-3">
-                                <button type="reset" class="btn btn-secondary">{{\App\CPU\translate('reset')}} </button>
-                                <button type="submit" class="btn btn--primary">{{\App\CPU\translate('Send')}}  {{\App\CPU\translate('Notification')}}  </button>
+                                <button type="reset" class="btn btn-secondary">{{translate('reset')}} </button>
+                                <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}"
+                                        class="btn btn--primary {{env('APP_MODE')!='demo'?'':'call-demo'}}">{{translate('send_Notification')}}  </button>
                             </div>
                         </form>
                     </div>
@@ -77,7 +72,7 @@
                         <div class="row align-items-center">
                             <div class="col-sm-4 col-md-6 col-lg-8 mb-2 mb-sm-0">
                                 <h5 class="mb-0 text-capitalize d-flex align-items-center gap-2">
-                                    {{ \App\CPU\translate('push_notification_table')}}
+                                    {{ translate('push_notification_table')}}
                                     <span
                                         class="badge badge-soft-dark radius-50 fz-12 ml-1">{{ $notifications->total() }}</span>
                                 </h5>
@@ -90,77 +85,87 @@
                                                 <i class="tio-search"></i>
                                             </div>
                                         </div>
-                                        <input id="datatableSearch_" type="search" name="search" class="form-control"
-                                               placeholder="{{\App\CPU\translate('Search by Title')}}"
-                                               aria-label="Search orders" value="{{ $search }}" required>
+                                        <input id="datatableSearch_" type="search" name="searchValue"
+                                               class="form-control"
+                                               placeholder="{{translate('search_by_title')}}"
+                                               aria-label="Search orders" value="{{ $searchValue }}" required>
                                         <button type="submit"
-                                                class="btn btn--primary">{{\App\CPU\translate('search')}}</button>
+                                                class="btn btn--primary">{{translate('search')}}</button>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Table -->
                     <div class="table-responsive datatable-custom">
-                        <table style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};"
-                               class="table table-hover table-borderless table-thead-bordered table-nowrap table-align-middle card-table w-100">
+                        <table class="table table-hover table-borderless table-thead-bordered table-nowrap table-align-middle card-table w-100 text-start">
                             <thead class="thead-light thead-50 text-capitalize">
                             <tr>
-                                <th>{{\App\CPU\translate('SL')}} </th>
-                                <th>{{\App\CPU\translate('Title')}} </th>
-                                <th>{{\App\CPU\translate('Description')}} </th>
-                                <th>{{\App\CPU\translate('Image')}} </th>
-                                <th>{{\App\CPU\translate('notification_count')}} </th>
-                                <th>{{\App\CPU\translate('Status')}} </th>
-                                <th>{{\App\CPU\translate('Resend')}} </th>
-                                <th class="text-center">{{\App\CPU\translate('Action')}} </th>
+                                <th>{{translate('SL')}} </th>
+                                <th>{{translate('title')}} </th>
+                                <th>{{translate('description')}} </th>
+                                <th>{{translate('image')}} </th>
+                                <th>{{translate('notification_count')}} </th>
+                                <th>{{translate('status')}} </th>
+                                <th>{{translate('resend')}} </th>
+                                <th class="text-center">{{translate('action')}} </th>
                             </tr>
-
                             </thead>
-
                             <tbody>
                             @foreach($notifications as $key=>$notification)
                                 <tr>
                                     <td>{{$notifications->firstItem()+ $key}}</td>
                                     <td>
                                         <span class="d-block">
-                                            {{\Illuminate\Support\Str::limit($notification['title'],30)}}
+                                            {{Str::limit($notification['title'],30)}}
                                         </span>
                                     </td>
                                     <td>
-                                        {{\Illuminate\Support\Str::limit($notification['description'],40)}}
+                                        {{Str::limit($notification['description'],40)}}
                                     </td>
                                     <td>
                                         <img class="min-w-75" width="75" height="75"
-                                             onerror="this.src='{{asset('public/assets/back-end/img/160x160/img2.jpg')}}'"
-                                             src="{{asset('storage/app/public/notification')}}/{{$notification['image']}}">
+                                             src="{{ getValidImage(path: 'storage/app/public/notification/'.$notification['image']?? '', type: 'backend-basic') }}" alt="">
                                     </td>
                                     <td id="count-{{$notification->id}}">{{ $notification['notification_count'] }}</td>
                                     <td>
-                                        <label class="switcher">
-                                            <input type="checkbox" class="status switcher_input"
-                                                   id="{{$notification['id']}}" {{$notification->status == 1?'checked':''}}>
-                                            <span class="switcher_control"></span>
-                                        </label>
+                                        <form action="{{route('admin.notification.update-status')}}" method="post"
+                                              id="notification-status{{$notification['id']}}-form"
+                                              class="notification_status_form">
+                                            @csrf
+                                            <input type="hidden" name="id" value="{{$notification['id']}}">
+                                            <label class="switcher mx-auto">
+                                                <input type="checkbox" class="switcher_input toggle-switch-message"
+                                                       id="notification-status{{$notification['id']}}" name="status" value="1"
+                                                       {{ $notification['status'] == 1 ? 'checked':'' }}
+                                                       data-modal-id = "toggle-status-modal"
+                                                       data-toggle-id = "notification-status{{$notification['id']}}"
+                                                       data-on-image = "notification-on.png"
+                                                       data-off-image = "notification-off.png"
+                                                       data-on-title = "{{translate('Want_to_Turn_ON_Notification_Status').'?'}}"
+                                                       data-off-title = "{{translate('Want_to_Turn_OFF_Notification_Status').'?'}}"
+                                                       data-on-message = "<p>{{translate('if_enabled_customers_will_receive_notifications_on_their_devices')}}</p>"
+                                                       data-off-message = "<p>{{translate('if_disabled_customers_will_not_receive_notifications_on_their_devices')}}</p>">
+                                                <span class="switcher_control"></span>
+                                            </label>
+                                        </form>
                                     </td>
                                     <td>
-                                        <a href="javascript:void(0)" class="btn btn-outline-success square-btn btn-sm"
-                                           onclick="resendNotification(this)" data-id="{{ $notification->id }}">
+                                        <a href="javascript:" class="btn btn-outline-success square-btn btn-sm resend-notification"
+                                           data-id="{{ $notification->id }}">
                                             <i class="tio-refresh"></i>
                                         </a>
                                     </td>
                                     <td class="text-center">
                                         <div class="d-flex justify-content-center gap-2">
                                             <a class="btn btn-outline--primary btn-sm edit square-btn"
-                                               title="{{\App\CPU\translate('Edit')}}"
-                                               href="{{route('admin.notification.edit',[$notification['id']])}}">
+                                               title="{{translate('edit')}}"
+                                               href="{{route('admin.notification.update',[$notification['id']])}}">
                                                 <i class="tio-edit"></i>
                                             </a>
-                                            <a class="btn btn-outline-danger btn-sm delete"
-                                               title="{{\App\CPU\translate('Delete')}}"
-                                               href="javascript:"
-                                               id="{{$notification['id']}}')">
+                                            <a class="btn btn-outline-danger btn-sm delete-data-without-form"
+                                               title="{{translate('delete')}}"
+                                               data-action="{{route('admin.notification.delete')}}"
+                                               data-id="{{$notification['id']}}')">
                                                 <i class="tio-delete"></i>
                                             </a>
                                         </div>
@@ -169,137 +174,22 @@
                             @endforeach
                             </tbody>
                         </table>
-
                         <table class="mt-4">
                             <tfoot>
                             {!! $notifications->links() !!}
                             </tfoot>
                         </table>
                     </div>
+                    @if(count($notifications) <= 0)
+                        @include('layouts.back-end._empty-state',['text'=>'no_data_found'],['image'=>'default'])
+                    @endif
                 </div>
             </div>
-            <!-- End Table -->
         </div>
     </div>
-
+    <span id="get-resend-notification-route-and-text" data-text="{{translate("resend_notification")}}" data-action="{{ route("admin.notification.resend-notification") }}"></span>
 @endsection
 
-@push('script_2')
-    <script>
-        $(document).on('change', '.status', function () {
-            var id = $(this).attr("id");
-            if ($(this).prop("checked") == true) {
-                var status = 1;
-            } else if ($(this).prop("checked") == false) {
-                var status = 0;
-            }
-            $.ajaxSetup({
-                headers: {
-                    'X-CSRF-TOKEN': $('meta[name="_token"]').attr('content')
-                }
-            });
-            $.ajax({
-                url: "{{route('admin.notification.status')}}",
-                method: 'POST',
-                data: {
-                    id: id,
-                    status: status
-                },
-                success: function () {
-                    toastr.success('{{\App\CPU\translate('Status updated successfully')}}');
-                    location.reload();
-                }
-            });
-        });
-        $(document).on('click', '.delete', function () {
-            var id = $(this).attr("id");
-            Swal.fire({
-                title: '{{\App\CPU\translate('Are you sure delete this')}} ?',
-                text: "{{\App\CPU\translate('You will not be able to revert this')}}!",
-                showCancelButton: true,
-                confirmButtonColor: '#3085d6',
-                cancelButtonColor: '#d33',
-                confirmButtonText: '{{\App\CPU\translate('Yes')}}, {{\App\CPU\translate('delete it')}}!',
-                type: 'warning',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.value) {
-                    $.ajaxSetup({
-                        headers: {
-                            'X-CSRF-TOKEN': $('meta[name="_token"]').attr('content')
-                        }
-                    });
-                    $.ajax({
-                        url: "{{route('admin.notification.delete')}}",
-                        method: 'POST',
-                        data: {id: id},
-                        success: function () {
-                            toastr.success('{{\App\CPU\translate('notification deleted successfully')}}');
-                            location.reload();
-                        }
-                    });
-                }
-            })
-        });
-    </script>
-
-    <script>
-        function readURL(input) {
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
-
-                reader.onload = function (e) {
-                    $('#viewer').attr('src', e.target.result);
-                }
-
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        $("#customFileEg1").change(function () {
-            readURL(this);
-        });
-
-        function resendNotification(t) {
-            let id = $(t).data('id');
-
-            Swal.fire({
-                title: '{{\App\CPU\translate("Are_you_sure?")}}',
-                text: '{{\App\CPU\translate('Resend_notification')}}',
-                type: 'warning',
-                showCancelButton: true,
-                cancelButtonColor: 'default',
-                confirmButtonColor: '#161853',
-                cancelButtonText: '{{\App\CPU\translate("No")}}',
-                confirmButtonText: '{{\App\CPU\translate("Yes")}}',
-                reverseButtons: true
-            }).then((result) => {
-                if (result.value) {
-                    $.ajax({
-                        url: '{{ route("admin.notification.resend-notification") }}',
-                        type: 'POST',
-                        data: {
-                            _token: '{{ csrf_token() }}',
-                            id: id
-                        },
-                        beforeSend: function () {
-                            $('#loading').show();
-                        },
-                        success: function (res) {
-                            let toasterMessage = res.success ? toastr.success : toastr.info;
-
-                            toasterMessage(res.message, {
-                                CloseButton: true,
-                                ProgressBar: true
-                            });
-                            $('#count-' + id).text(parseInt($('#count-' + id).text()) + 1);
-                        },
-                        complete: function () {
-                            $('#loading').hide();
-                        }
-                    });
-                }
-            })
-        }
-    </script>
+@push('script')
+    <script src="{{dynamicAsset(path: 'public/assets/back-end/js/admin/notification.js')}}"></script>
 @endpush

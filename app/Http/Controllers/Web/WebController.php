@@ -2,252 +2,103 @@
 
 namespace App\Http\Controllers\Web;
 
-use App\CPU\Helpers;
-use App\CPU\OrderManager;
-use App\CPU\ProductManager;
-use App\CPU\CartManager;
-use App\Http\Controllers\Controller;
-use App\Model\Admin;
-use App\Model\Banner;
-use App\Model\Brand;
-use App\Model\BusinessSetting;
-use App\Model\Cart;
-use App\Model\CartShipping;
-use App\Model\Category;
-use App\Model\Contact;
-use App\Model\Coupon;
-use App\Model\Currency;
-use App\Model\DealOfTheDay;
-use App\Model\DeliveryCountryCode;
-use App\Model\DeliveryZipCode;
-use App\Model\FlashDeal;
-use App\Model\FlashDealProduct;
-use App\Model\HelpTopic;
-use App\Model\OrderDetail;
-use App\Model\Product;
-use App\Model\Review;
-use App\Model\Seller;
-use App\Model\DeleteAccountRequest;
-use App\Model\ShippingAddress;
-use App\Model\Subscription;
-use App\Model\ShippingMethod;
-use App\Model\Shop;
-use App\Model\Order;
-use App\Model\Transaction;
-use App\Model\Translation;
-use App\Traits\CommonTrait;
+use App\Models\Admin;
+use App\Traits\InHouseTrait;
 use App\User;
-use App\Model\Notification;
-use App\Model\Wishlist;
-use App\Model\ShopFollower;
+use App\Utils\CategoryManager;
+use App\Utils\Helpers;
+use App\Events\DigitalProductOtpVerificationEvent;
+use App\Http\Controllers\Controller;
+use App\Models\OfflinePaymentMethod;
+use App\Models\ShippingAddress;
+use App\Models\ShippingMethod;
+use App\Models\ShippingType;
+use App\Models\Shop;
+use App\Models\Subscription;
+use App\Models\OrderDetail;
+use App\Models\Review;
+use App\Models\Brand;
+use App\Models\BusinessSetting;
+use App\Models\Cart;
+use App\Models\CartShipping;
+use App\Models\Category;
+use App\Models\Contact;
+use App\Models\Currency;
+use App\Models\DeliveryZipCode;
+use App\Models\DigitalProductOtpVerification;
+use App\Models\FlashDeal;
+use App\Models\FlashDealProduct;
+use App\Models\Order;
+use App\Models\Product;
+use App\Models\ProductCompare;
+use App\Models\Seller;
+use App\Models\Setting;
+use App\Models\Wishlist;
+use App\Traits\CommonTrait;
+use App\Traits\SmsGateway;
+use App\Utils\CartManager;
+use App\Utils\Convert;
+use App\Utils\CustomerManager;
+use App\Utils\OrderManager;
+use App\Utils\ProductManager;
+use App\Utils\SMS_module;
 use Brian2694\Toastr\Facades\Toastr;
+use Carbon\Carbon;
+use Carbon\CarbonInterval;
+use Gregwar\Captcha\CaptchaBuilder;
+use Gregwar\Captcha\PhraseBuilder;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Session;
-use Illuminate\Support\Facades\Storage;
-use function App\CPU\translate;
-use App\Model\ShippingType;
-use Facade\FlareClient\Http\Response;
-use Gregwar\Captcha\PhraseBuilder;
-use Gregwar\Captcha\CaptchaBuilder;
-use App\CPU\CustomerManager;
-use App\CPU\Convert;
-use App\Model\ProductCompare;
-use Carbon\Carbon;
-use App\Model\Stat;
+use Illuminate\Support\Str;
+use function App\Utils\payment_gateways;
 
 class WebController extends Controller
 {
     use CommonTrait;
+    use InHouseTrait;
+    use SmsGateway;
 
     public function __construct(
-        private OrderDetail $order_details,
-        private Product $product,
-        private Wishlist $wishlist,
-        private Order $order,
-        private Category $category,
-        private Brand $brand,
-        private Seller $seller,
+        private OrderDetail    $order_details,
+        private Product        $product,
+        private Wishlist       $wishlist,
+        private Order          $order,
+        private Category       $category,
+        private Brand          $brand,
+        private Seller         $seller,
         private ProductCompare $compare,
-    ) {
+    )
+    {
 
     }
 
-    public function maintenance_mode()
+    public function maintenance_mode(): View|RedirectResponse
     {
         $maintenance_mode = Helpers::get_business_settings('maintenance_mode') ?? 0;
-        if ($maintenance_mode) {
+        if ($maintenance_mode && !Auth::guard('admin')->check()) {
             return view(VIEW_FILE_NAMES['maintenance_mode']);
         }
         return redirect()->route('home');
     }
 
-    public function spin_game()
+    public function getFlashDealsView(Request $request, $id): View|RedirectResponse
     {
-        
-        if (auth('customer')->check()) {
-            $user = auth('customer')->user();
-            if ($user->last_spin_win) {
-                $now = Carbon::now();
-                $lastSpinWin = Carbon::parse($user->last_spin_win);
-                $canSpin = $now->diffInMonths($lastSpinWin) >= 1;
-            } else {
-                $canSpin = true;
-            }
-        } else {
-            $canSpin = false;
-        }
-        return view(VIEW_FILE_NAMES['spin_game'], ['canSpin' => $canSpin]);
-    }
-    
-    public function updateLastSpinWin(Request $request)
-    {
-        try {
-            // Assuming you have the authenticated user
-            $user = auth('customer')->user();
-
-            // Update the last_spin_win column with the current date
-            $user->update(['last_spin_win' => now()]);
-
-            return response()->json(['message' => 'Last spin updated successfully']);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
-  public function index_2(Request $request)
-    {
-        
-        return view('admin-views.notification.index-notification');
-    }
-    
-    
-    public function delete_account()
-    {
-        
-        return view('layouts.delete-account');
-    }
-    
-    public function delete_account_data(Request $request)
-    {
-        $email = $request->input('identity');
-    
-        
-        $user = User::where('email', $email)->first();
-        $seller = Seller::where('email', $email)->first();
-    
-        if ($user || $seller) {
-            
-            if ($user) {
-                $type = 'user';
-            }
-            if ($seller) {
-                $type = 'seller';
-            }
-    
-            DeleteAccountRequest::create([
-                'email' => $email,
-                'type' => $type,
+        $userId = Auth::guard('customer')->user() ? Auth::guard('customer')->id() : 0;
+        $flashDeal = ProductManager::getPriorityWiseFlashDealsProductsQuery(id: $id, userId: $userId);
+        if (isset($flashDeal['flashDeal'])) {
+            return view(VIEW_FILE_NAMES['flash_deals'], [
+                'deal' => $flashDeal['flashDeal'],
+                'flashDealProducts' => $flashDeal['flashDealProducts'],
             ]);
-            
-            Toastr::success(translate('Your request has been sent successfully.'));
-            return redirect()->route('home');
-        } else {
-            
-            return redirect()->back()->with('error', 'Email not found in our records.');
-        }
-    }
-    
-    
-    
-   public function updateDeviceToken(Request $request)
-    {
-        $user = User::find(994); 
-    
-        if ($user) {
-            $user->cm_firebase_token = $request->token;
-            $user->save();
-    
-            return response()->json(['Token successfully stored.']);
-        } else {
-            return response()->json(['User not found.'], 404);
-        }
-    }
-
-    public function sendNotification(Request $request)
-    {
-        $url = 'https://fcm.googleapis.com/fcm/send';
-        
-        $user = User::find(994); 
-        $FcmToken = "$user->cm_firebase_token";
-            
-        $serverKey = 'AAAAH6l6PdM:APA91bFPfP-xvSixRRCfsNKXyEP4hNCae79vPEXVRVaNZqpOhepIkjvc_-0l8Ex7R51GVV1asUYyRxq9y-jAN0n62oSh9RdSzorwiuYRE0eM5d3Sy4CZIDE05SxLw4RVM1yAONUMQ9kV'; 
-    
-        $data = [
-            "registration_ids" => $FcmToken,
-            "notification" => [
-                "title" => $request->title,
-                "body" => $request->body,  
-            ]
-        ];
-        $encodedData = json_encode($data);
-    
-        $headers = [
-            'Authorization:key=' . $serverKey,
-            'Content-Type: application/json',
-        ];
-    
-        $ch = curl_init();
-        
-        curl_setopt($ch, CURLOPT_URL, $url);
-        curl_setopt($ch, CURLOPT_POST, true);
-        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
-        curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
-        // Disabling SSL Certificate support temporarly
-        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-        curl_setopt($ch, CURLOPT_POSTFIELDS, $encodedData);
-        // Execute post
-        $result = curl_exec($ch);
-        if ($result === FALSE) {
-            die('Curl failed: ' . curl_error($ch));
-        }        
-        // Close connection
-        curl_close($ch);
-        return back();
-    }
-
-    
-
-
-    public function flash_deals($id)
-    {
-        $deal = FlashDeal::with(['products.product.reviews', 'products.product' => function($query){
-                $query->active();
-            }])
-            ->where(['id' => $id, 'status' => 1])
-            ->whereDate('start_date', '<=', date('Y-m-d'))
-            ->whereDate('end_date', '>=', date('Y-m-d'))
-            ->first();
-
-            $discountPrice = FlashDealProduct::with(['product'])->whereHas('product', function ($query) {
-                $query->active();
-            })->get()->map(function ($data) {
-                return [
-                    'discount' => $data->discount,
-                    'sellPrice' => isset($data->product->unit_price) ? $data->product->unit_price : 0,
-                    'discountedPrice' => isset($data->product->unit_price) ? $data->product->unit_price - $data->discount : 0,
-
-                ];
-            })->toArray();
-
-
-        if (isset($deal)) {
-            return view(VIEW_FILE_NAMES['flash_deals'], compact('deal', 'discountPrice'));
         }
         Toastr::warning(translate('not_found'));
         return back();
@@ -266,10 +117,21 @@ class WebController extends Controller
         return view(VIEW_FILE_NAMES['all_stores_page'], compact('sellers'));
     }
 
-    public function all_categories()
+    public function getAllCategoriesView(): View
     {
-        $categories = Category::all();
-        return view(VIEW_FILE_NAMES['categories'], compact('categories'));
+        $categories = Category::with(['product' => function ($query) {
+            return $query->active()->withCount(['orderDetails']);
+        }])->withCount(['product' => function ($query) {
+            $query->active();
+        }])->with(['childes' => function ($query) {
+            $query->with(['childes' => function ($query) {
+                $query->withCount(['subSubCategoryProduct'])->where('position', 2);
+            }])->withCount(['subCategoryProduct'])->where('position', 1);
+        }, 'childes.childes'])->where('position', 0)->get();
+
+        return view('web-views.products.categories', [
+            'categories' => CategoryManager::getPriorityWiseCategorySortQuery(query: $categories),
+        ]);
     }
 
     public function categories_by_category($id)
@@ -280,94 +142,162 @@ class WebController extends Controller
         ]);
     }
 
-    public function all_brands(Request $request)
+    public function getAllBrandsView(Request $request): View|RedirectResponse
     {
-        $brands = Brand::active()->withCount('brandProducts')
-                                ->when($request->has('order_by'), function($query) use($request){
-                                    $query->orderBy('name', $request->order_by);
-                                })->when($request->has('search'), function($query) use($request){
-                                    $query->where('name', 'LIKE', '%' . $request->search . '%');
-                                })->latest()->paginate(24);
+        $brandStatus = BusinessSetting::where(['type' => 'product_brand'])->value('value');
+        session()->put('product_brand', $brandStatus);
+        if ($brandStatus == 1) {
+            $brandList = Brand::active()->with(['brandProducts' => function ($query) {
+                return $query->withCount(['orderDetails']);
+            }])
+            ->withCount('brandProducts')
+            ->when($request->has('search'), function ($query) use ($request) {
+                $query->where('name', 'LIKE', '%' . $request['search'] . '%');
+            });
 
-        $order_by = $request->order_by;
-        $search_keyword = $request->search;
-
-        return view(VIEW_FILE_NAMES['all_brands'], compact('brands','order_by','search_keyword'));
+            return view(VIEW_FILE_NAMES['all_brands'], [
+                'brands' => self::getPriorityWiseBrandProductsQuery(request: $request, query: $brandList),
+            ]);
+        } else {
+            return redirect()->route('home');
+        }
     }
 
-    public function all_sellers(Request $request)
+    function getPriorityWiseBrandProductsQuery($request, $query)
     {
-        $business_mode=Helpers::get_business_settings('business_mode');
-        if(isset($business_mode) && $business_mode=='single')
-        {
-            Toastr::warning(translate('access_denied!!'));
+        $brandProductSortBy = getWebConfig(name: 'brand_list_priority');
+        $orderBy = $request->get('order_by', 'desc');
+
+        if (empty($request['order_by']) && $brandProductSortBy && ($brandProductSortBy['custom_sorting_status'] == 1)) {
+            if ($brandProductSortBy['sort_by'] == 'most_order') {
+                $query = $query->get()->map(function ($brand) {
+                    $brand['order_count'] = $brand->brandProducts->sum('order_details_count');
+                    return $brand;
+                })->sortByDesc('order_count');
+            } elseif ($brandProductSortBy['sort_by'] == 'latest_created') {
+                $query =  $query->orderBy('id', 'desc');
+            } elseif ($brandProductSortBy['sort_by'] == 'first_created') {
+                $query =  $query->orderBy('id', 'asc');
+            } elseif ($brandProductSortBy['sort_by'] == 'a_to_z') {
+                $query =  $query->orderBy('name', 'asc');
+            } elseif ($brandProductSortBy['sort_by'] == 'z_to_a') {
+                $query =  $query->orderBy('name', 'desc');
+            }
+
+            return $query->paginate(15)->appends(['order_by' => $orderBy, 'search' => $request['search']]);
+        } else {
+            return $query->orderBy('name', $orderBy)->latest()->paginate(15)->appends(['order_by' => $orderBy, 'search' => $request['search']]);
+        }
+
+    }
+
+    public function getAllVendorsView(Request $request): View|RedirectResponse
+    {
+        $businessMode = getWebConfig(name: 'business_mode');
+        if (isset($businessMode) && $businessMode == 'single') {
+            Toastr::warning(translate('access_denied') . ' !!');
             return back();
         }
-        $sellers = Shop::with(['product.rating' => function($query){
-            $query->active();
-        }])->withCount('product')->whereHas('seller', function ($query) {
-            return $query->approved();
-        })->when($request->has('order_by'), function($query) use ($request){
-            $query->orderBy('name', $request->order_by);
-        })->paginate(12);
 
-        $order_by = $request->order_by;
+        $vendorsList = Shop::active()
+            ->withCount(['products' => function ($query) {
+                $query->active();
+            }])
+            ->when(isset($request['shop_name']), function ($query) use ($request) {
+                $key = explode(' ', $request['shop_name']);
+                return $query->where(function ($q) use ($key) {
+                    foreach ($key as $value) {
+                        $q->orWhere('name', 'like', "%{$value}%");
+                    }
+                });
+            })
+            ->with('seller', function ($query) {
+                $query->with('product', function ($query) {
+                    $query->active()->with('reviews', function ($query) {
+                        $query->active();
+                    });
+                })->withCount(['orders']);
+            })
+            ->get()
+            ->each(function ($shop) {
+                $shop->orders_count = $shop->seller->orders_count;
 
-        return view(VIEW_FILE_NAMES['all_stores_page'], compact('sellers','order_by'));
-    }
-    
-    public function special_sellers(Request $request)
-        {
-            $business_mode = Helpers::get_business_settings('business_mode');
-            if (isset($business_mode) && $business_mode == 'single') {
-                Toastr::warning(translate('access_denied!!'));
-                return back();
-            }
-        
-            $allowed_addresses = ['PRO 3300DA'];
-        
-            $sellers = Shop::with(['product.rating' => function ($query) {
-                    $query->active();
-                }])
-                ->withCount('product')
-                ->whereHas('seller', function ($query) {
-                    return $query->approved();
-                })
-                ->whereIn('address', $allowed_addresses) 
-                ->when($request->has('order_by'), function ($query) use ($request) {
-                    $query->orderBy('name', $request->order_by);
-                })
-                ->paginate(12);
-        
-            $order_by = $request->order_by;
-        
-            return view(VIEW_FILE_NAMES['special_stores_page'], compact('sellers', 'order_by'));
+                $productReviews = $shop->seller->product->pluck('reviews')->collapse();
+                $productReviews = $productReviews->where('status',1);
+                $shop->average_rating = $productReviews->avg('rating');
+                $shop->review_count = $productReviews->count();
+                $shop->total_rating = $productReviews->sum('rating');
+
+                $positiveReviewsCount = $productReviews->where('rating', '>=', 4)->count();
+                $shop->positive_review = ($shop->review_count !== 0) ? ($positiveReviewsCount * 100) / $shop->review_count : 0;
+
+                $currentDate = date('Y-m-d');
+                $startDate = date('Y-m-d', strtotime($shop['vacation_start_date']));
+                $endDate = date('Y-m-d', strtotime($shop['vacation_end_date']));
+                $shop->is_vacation_mode_now = $shop['vacation_status'] && ($currentDate >= $shop['vacation_start_date']) && ($currentDate <= $shop['vacation_end_date']) ? 1 : 0;
+                return $shop;
+            });
+
+        $inhouseProducts = Product::active()->with(['reviews', 'rating'])->withCount('reviews')->where(['added_by' => 'admin'])->get();
+        $inhouseProductCount = $inhouseProducts->count();
+
+        $inhouseReviewData = Review::active()->whereIn('product_id', $inhouseProducts->pluck('id'));
+        $inhouseReviewDataCount = $inhouseReviewData->count();
+        $inhouseRattingStatusPositive = 0;
+        foreach ($inhouseReviewData->pluck('rating') as $singleRating) {
+            ($singleRating >= 4 ? ($inhouseRattingStatusPositive++) : '');
         }
-        
-    public function search_special_shop(Request $request)
-    {
-        $key = explode(' ', $request['shop_name']);
-        $sellers = Shop::where(function ($q) use ($key) {
-            foreach ($key as $value) {
-                $q->orWhere('name', 'like', "%{$value}%");
-            }
-        })->whereHas('seller', function ($query) {
-            return $query->where(['status' => 'approved']);
-        })->paginate(30);
-        return view(VIEW_FILE_NAMES['special_stores_page'], compact('sellers'));
-    }
 
-    
+        $current_date = date('Y-m-d');
+        $inhouseShop = $this->getInHouseShopObject();
+        $inhouseShop->id = 0;
+        $inhouseShop->products_count = $inhouseProductCount;
+        $inhouseShop->total_rating = $inhouseReviewDataCount;
+        $inhouseShop->review_count = $inhouseReviewDataCount;
+        $inhouseShop->average_rating = $inhouseReviewData->avg('rating');
+        $inhouseShop->positive_review = $inhouseReviewDataCount != 0 ? ($inhouseRattingStatusPositive * 100) / $inhouseReviewDataCount : 0;
+        $inhouseShop->orders_count = Order::where(['seller_is' => 'admin'])->count();
+        $inhouseShop->is_vacation_mode_now = $inhouseShop['vacation_status'] && ($current_date >= $inhouseShop['vacation_start_date']) && ($current_date <= $inhouseShop['vacation_end_date']) ? 1 : 0;
+
+        if (!(isset($request['shop_name']) && !str_contains(strtolower(getWebConfig(name: 'company_name')), strtolower($request['shop_name'])))) {
+            $vendorsList = $vendorsList->prepend($inhouseShop);
+        }
+
+        if ($request->has('filter') && $request['filter'] == 'top-vendors') {
+            $vendorsList = ProductManager::getPriorityWiseTopVendorQuery($vendorsList);
+        } else {
+            $vendorsList = ProductManager::getPriorityWiseVendorQuery($vendorsList);
+        }
+
+        if ($request->has('order_by')) {
+            if ($request['order_by'] == 'asc') {
+                $vendorsList = $vendorsList->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE);
+            } else if ($request['order_by'] == 'desc') {
+                $vendorsList = $vendorsList->sortByDesc('name', SORT_NATURAL | SORT_FLAG_CASE);
+            } else if ($request['order_by'] == 'highest-products') {
+                $vendorsList = $vendorsList->sortByDesc('products_count');
+            } else if ($request['order_by'] == 'lowest-products') {
+                $vendorsList = $vendorsList->sortBy('products_count');
+            } else if ($request['order_by'] == 'rating-high-to-low') {
+                $vendorsList = $vendorsList->sortByDesc('average_rating');
+            } else if ($request['order_by'] == 'rating-low-to-high') {
+                $vendorsList = $vendorsList->sortBy('average_rating');
+            };
+        }
+
+        return view(VIEW_FILE_NAMES['all_stores_page'], [
+            'sellers' => $vendorsList->paginate(12)->appends($request->all()),
+            'order_by' => $request['order_by'],
+        ]);
+    }
 
     public function seller_profile($id)
     {
         $seller_info = Seller::find($id);
         return view('web-views.seller-profile', compact('seller_info'));
     }
-    
-    
 
-    public function searched_products(Request $request)
+    public function getSearchedProducts(Request $request): JsonResponse
     {
         $request->validate([
             'name' => 'required',
@@ -375,21 +305,47 @@ class WebController extends Controller
             'name.required' => 'Product name is required!',
         ]);
 
-        $result = ProductManager::search_products_web($request['name'], $request['category_id']);
+        $result = ProductManager::getSearchProductsForWeb($request['name'], $request['category_id'] ?? 'all');
         $products = $result['products'];
 
         if ($products == null) {
-            $result = ProductManager::translated_product_search_web($request['name'], $request['category_id']);
+            $result = ProductManager::getTranslatedProductSearchForWeb($request['name'], $request['category_id'] ?? 'all');
             $products = $result['products'];
         }
 
+        $sellers = Shop::where(function ($query) use ($request) {
+            $query->orWhere('name', 'like', "%{$request['name']}%");
+        })->whereHas('seller', function ($query) {
+            return $query->where(['status' => 'approved']);
+        })->with('products', function ($query) {
+            return $query->active()->where('added_by', 'seller');
+        })->get();
+
+        $product_ids = [];
+        foreach ($sellers as $seller) {
+            if (isset($seller->product) && $seller->product->count() > 0) {
+                $ids = $seller->product->pluck('id');
+                array_push($product_ids, ...$ids);
+            }
+        }
+
+        $companyName = getWebConfig(name: 'company_name');
+        if (strpos($request['name'], $companyName) !== false) {
+            $ids = Product::active()->Where('added_by', 'admin')->pluck('id');
+            array_push($product_ids, ...$ids);
+        }
+
+        $seller_products = Product::active()->withCount('reviews')->whereIn('id', $product_ids)
+            ->orderByRaw("LOCATE('{$request['name']}', name), name")->get();
+
         return response()->json([
-            'result' => view(VIEW_FILE_NAMES['product_search_result'], compact('products'))->render(),
+            'result' => view(VIEW_FILE_NAMES['product_search_result'], compact('products', 'seller_products'))->render(),
+            'seller_products' => $seller_products->count(),
         ]);
     }
 
     // global search for theme fashion compare list
-    public function searched_products_for_compare_list(Request $request)
+    public function getSearchedProductsForCompareList(Request $request): JsonResponse
     {
         $request->validate([
             'name' => 'required',
@@ -397,276 +353,334 @@ class WebController extends Controller
             'name.required' => 'Product name is required!',
         ]);
         $compare_id = $request['compare_id'];
-        $result = ProductManager::search_products_web($request['name']);
+        $result = ProductManager::getSearchProductsForWeb($request['name']);
         $products = $result['products'];
         if ($products == null) {
-            $result = ProductManager::translated_product_search_web($request['name']);
+            $result = ProductManager::getTranslatedProductSearchForWeb($request['name']);
             $products = $result['products'];
         }
         return response()->json([
-            'result' => view(VIEW_FILE_NAMES['product_search_result_for_compare_list'], compact('products','compare_id'))->render(),
+            'result' => view(VIEW_FILE_NAMES['product_search_result_for_compare_list'], compact('products', 'compare_id'))->render(),
         ]);
-
     }
 
     public function checkout_details(Request $request)
     {
-        $cart_group_ids = CartManager::get_cart_group_ids();
-        $shippingMethod = Helpers::get_business_settings('shipping_method');
+        if (
+            (!auth('customer')->check() || Cart::where(['customer_id' => auth('customer')->id()])->count() < 1)
+            && (!getWebConfig(name: 'guest_checkout') || !session()->has('guest_id') || !session('guest_id'))
+        ) {
+            Toastr::error(translate('invalid_access'));
+            return redirect('/');
+        }
 
-        $physical_product_view = false;
-        foreach($cart_group_ids as $group_id) {
-            $carts = Cart::where('cart_group_id', $group_id)->get();
-            foreach ($carts as $cart) {
-                if ($cart->product_type == 'physical') {
-                    $physical_product_view = true;
-                }
+        $response = self::checkValidationForCheckoutPages($request);
+        if ($response['status'] == 0) {
+            foreach ($response['message'] as $message) {
+                Toastr::error($message);
             }
+            return isset($response['redirect']) ? redirect($response['redirect']) : redirect('/');
         }
 
-        foreach($cart_group_ids as $group_id) {
-            $carts = Cart::where('cart_group_id', $group_id)->get();
+        $countryRestrictStatus = getWebConfig(name: 'delivery_country_restriction');
+        $zipRestrictStatus = getWebConfig(name: 'delivery_zip_code_area_restriction');
+        $countries = $countryRestrictStatus ? $this->get_delivery_country_array() : COUNTRIES;
+        $zipCodes = $zipRestrictStatus ? DeliveryZipCode::all() : 0;
+        $billingInputByCustomer = getWebConfig(name: 'billing_input_by_customer');
+        $defaultLocation = getWebConfig(name: 'default_location');
 
-            $physical_product = false;
-            foreach ($carts as $cart) {
-                if ($cart->product_type == 'physical') {
-                    $physical_product = true;
-                }
-            }
-            if($physical_product) {
-                foreach ($carts as $cart) {
-                    if ($shippingMethod == 'inhouse_shipping') {
-                        $admin_shipping = ShippingType::where('seller_id', 0)->first();
-                        $shipping_type = isset($admin_shipping) == true ? $admin_shipping->shipping_type : 'order_wise';
-                    } else {
-                        if ($cart->seller_is == 'admin') {
-                            $admin_shipping = ShippingType::where('seller_id', 0)->first();
-                            $shipping_type = isset($admin_shipping) == true ? $admin_shipping->shipping_type : 'order_wise';
-                        } else {
-                            $seller_shipping = ShippingType::where('seller_id', $cart->seller_id)->first();
-                            $shipping_type = isset($seller_shipping) == true ? $seller_shipping->shipping_type : 'order_wise';
-                        }
-                    }
+        $user = Helpers::get_customer($request);
+        $shippingAddresses = ShippingAddress::where([
+            'customer_id' => $user == 'offline' ? session('guest_id') : auth('customer')->id(),
+            'is_guest' => $user == 'offline' ? 1 : '0',
+        ])->get();
 
-                    if ($physical_product && $shipping_type == 'order_wise') {
-                        $cart_shipping = CartShipping::where('cart_group_id', $cart->cart_group_id)->first();
-                        if (!isset($cart_shipping)) {
-                            Toastr::info(translate('select_shipping_method_first'));
-                            return redirect('shop-cart');
-                        }
-                    }
-                }
-            }
+        $countriesName = [];
+        $countriesCode = [];
+        foreach ($countries as $country) {
+            $countriesName[] = $country['name'];
+            $countriesCode[] = $country['code'];
         }
 
-        $country_restrict_status = Helpers::get_business_settings('delivery_country_restriction');
-        $zip_restrict_status = Helpers::get_business_settings('delivery_zip_code_area_restriction');
-
-        if ($country_restrict_status) {
-            $countries = $this->get_delivery_country_array();
-        } else {
-            $countries = COUNTRIES;
-        }
-
-        if ($zip_restrict_status) {
-            $zip_codes = DeliveryZipCode::all();
-        } else {
-            $zip_codes = 0;
-        }
-
-        $billing_input_by_customer=Helpers::get_business_settings('billing_input_by_customer');
-        $default_location=Helpers::get_business_settings('default_location');
-        $shipping_addresses = ShippingAddress::where('customer_id',auth('customer')->id())->where('is_billing',0)->get();
-        $billing_addresses = ShippingAddress::where('customer_id',auth('customer')->id())->where('is_billing',1)->get();
-
-        if (count($cart_group_ids) > 0) {
-            return view(VIEW_FILE_NAMES['order_shipping'], compact('physical_product_view', 'zip_codes', 'country_restrict_status',
-                'zip_restrict_status', 'countries','billing_input_by_customer','default_location','shipping_addresses','billing_addresses'));
-
-        }
-
-        Toastr::info(translate('no_items_in_basket'));
-        return redirect('/');
+        return view(VIEW_FILE_NAMES['order_shipping'], [
+            'physical_product_view' => $response['physical_product_view'],
+            'zip_codes' => $zipCodes,
+            'country_restrict_status' => $countryRestrictStatus,
+            'zip_restrict_status' => $zipRestrictStatus,
+            'countries' => $countries,
+            'countriesName' => $countriesName,
+            'countriesCode' => $countriesCode,
+            'billing_input_by_customer' => $billingInputByCustomer,
+            'default_location' => $defaultLocation,
+            'shipping_addresses' => $shippingAddresses,
+            'billing_addresses' => $shippingAddresses
+        ]);
     }
 
-    public function checkout_payment()
+    public function checkout_payment(Request $request)
     {
-        $cart_group_ids = CartManager::get_cart_group_ids();
-        $shippingMethod = Helpers::get_business_settings('shipping_method');
-
-        $physical_products[] = false;
-        foreach($cart_group_ids as $group_id) {
-            $carts = Cart::where('cart_group_id', $group_id)->get();
-            $physical_product = false;
-            foreach ($carts as $cart) {
-                if ($cart->product_type == 'physical') {
-                    $physical_product = true;
-                }
+        $response = self::checkValidationForCheckoutPages($request);
+        if ($response['status'] == 0) {
+            foreach ($response['message'] as $message) {
+                Toastr::error($message);
             }
-            $physical_products[] = $physical_product;
+            return $response['redirect'] ? redirect($response['redirect']) : redirect('/');
         }
-        unset($physical_products[0]);
 
-        $cod_not_show = in_array(false, $physical_products);
-
-        foreach($cart_group_ids as $group_id) {
-            $carts = Cart::where('cart_group_id', $group_id)->get();
-
-            $physical_product = false;
-            foreach ($carts as $cart) {
+        $cartItemGroupIDs = CartManager::get_cart_group_ids(type: 'checked');
+        $cartGroupList = Cart::whereIn('cart_group_id', $cartItemGroupIDs)->where(['is_checked' => 1])->get()->groupBy('cart_group_id');
+        $isPhysicalProductExistArray = [];
+        foreach ($cartGroupList as $groupId => $cartGroup) {
+            $isPhysicalProductExist = false;
+            foreach ($cartGroup as $cart) {
                 if ($cart->product_type == 'physical') {
-                    $physical_product = true;
+                    $isPhysicalProductExist = true;
                 }
             }
-
-            if($physical_product) {
-                foreach ($carts as $cart) {
-                    if ($shippingMethod == 'inhouse_shipping') {
-                        $admin_shipping = ShippingType::where('seller_id', 0)->first();
-                        $shipping_type = isset($admin_shipping) == true ? $admin_shipping->shipping_type : 'order_wise';
-                    } else {
-                        if ($cart->seller_is == 'admin') {
-                            $admin_shipping = ShippingType::where('seller_id', 0)->first();
-                            $shipping_type = isset($admin_shipping) == true ? $admin_shipping->shipping_type : 'order_wise';
-                        } else {
-                            $seller_shipping = ShippingType::where('seller_id', $cart->seller_id)->first();
-                            $shipping_type = isset($seller_shipping) == true ? $seller_shipping->shipping_type : 'order_wise';
-                        }
-                    }
-                    if ($shipping_type == 'order_wise') {
-                        $cart_shipping = CartShipping::where('cart_group_id', $cart->cart_group_id)->first();
-                        if (!isset($cart_shipping)) {
-                            Toastr::info(translate('select_shipping_method_first'));
-                            return redirect('shop-cart');
-                        }
-                    }
-                }
-            }
+            $isPhysicalProductExistArray[$groupId] = $isPhysicalProductExist;
         }
+
+        $cashOnDeliveryBtnShow = !in_array(false, $isPhysicalProductExistArray);
 
         $order = Order::find(session('order_id'));
-        $coupon_discount = session()->has('coupon_discount') ? session('coupon_discount') : 0;
-        $amount = CartManager::cart_grand_total() - $coupon_discount;
-        $inr=Currency::where(['symbol'=>'₹'])->first();
-        $usd=Currency::where(['code'=>'USD'])->first();
-        $myr=Currency::where(['code'=>'MYR'])->first();
+        $couponDiscount = session()->has('coupon_discount') ? session('coupon_discount') : 0;
+        $orderWiseShippingDiscount = CartManager::order_wise_shipping_discount();
+        $getShippingCostSavedForFreeDelivery = CartManager::get_shipping_cost_saved_for_free_delivery(type: 'checked');
+        $amount = CartManager::cart_grand_total(type: 'checked') - $couponDiscount - $orderWiseShippingDiscount - $getShippingCostSavedForFreeDelivery;
+        $inr = Currency::where(['symbol' => '₹'])->first();
+        $usd = Currency::where(['code' => 'USD'])->first();
+        $myr = Currency::where(['code' => 'MYR'])->first();
 
-        $cash_on_delivery = Helpers::get_business_settings('cash_on_delivery');
-        $digital_payment = Helpers::get_business_settings('digital_payment');
-        $wallet_status = Helpers::get_business_settings('wallet_status');
-        $offline_payment = Helpers::get_business_settings('offline_payment');
-        $ssl_commerz_payment = Helpers::get_business_settings('ssl_commerz_payment');
-        $paypal = Helpers::get_business_settings('paypal');
-        $stripe = Helpers::get_business_settings('stripe');
-        $razor_pay = Helpers::get_business_settings('razor_pay');
-        $paystack = Helpers::get_business_settings('paystack');
-        $senang_pay = Helpers::get_business_settings('senang_pay');
-        $paymob_accept = Helpers::get_business_settings('paymob_accept');
-        $bkash = Helpers::get_business_settings('bkash');
-        $paytabs = Helpers::get_business_settings('paytabs');
-        $mercadopago = Helpers::get_business_settings('mercadopago');
-        $flutterwave = Helpers::get_business_settings('flutterwave');
-        $paytm = Helpers::get_business_settings('paytm');
-        $liqpay = Helpers::get_business_settings('liqpay');
+        $offlinePaymentMethods = OfflinePaymentMethod::where('status', 1)->get();
+        $paymentPublishedStatus = config('get_payment_publish_status');
+        $paymentGatewayPublishedStatus = isset($paymentPublishedStatus[0]['is_published']) ? $paymentPublishedStatus[0]['is_published'] : 0;
 
-        if (session()->has('address_id') && count($cart_group_ids) > 0) {
-            return view(
-                VIEW_FILE_NAMES['payment_details'],
-                compact(
-                    'cod_not_show','order','cash_on_delivery','digital_payment','offline_payment','ssl_commerz_payment','paypal','stripe',
-                    'razor_pay','paystack','senang_pay','paymob_accept','bkash','paytabs','mercadopago','flutterwave','paytm','liqpay','wallet_status',
-                    'coupon_discount','amount','inr','usd','myr'
-                ));
+        if (session()->has('address_id') && session()->has('billing_address_id')) {
+            return view(VIEW_FILE_NAMES['payment_details'], [
+                'cashOnDeliveryBtnShow' => $cashOnDeliveryBtnShow,
+                'order' => $order,
+                'cash_on_delivery' => getWebConfig(name: 'cash_on_delivery'),
+                'digital_payment' => getWebConfig(name: 'digital_payment'),
+                'wallet_status' => getWebConfig(name: 'wallet_status'),
+                'offline_payment' => getWebConfig(name: 'offline_payment'),
+                'coupon_discount' => $couponDiscount,
+                'amount' => $amount,
+                'inr' => $inr,
+                'usd' => $usd,
+                'myr' => $myr,
+                'payment_gateway_published_status' => $paymentGatewayPublishedStatus,
+                'payment_gateways_list' => payment_gateways(),
+                'offline_payment_methods' => $offlinePaymentMethods
+            ]);
         }
 
         Toastr::error(translate('incomplete_info'));
         return back();
     }
 
-    public function checkout_complete(Request $request)
+    public function getCashOnDeliveryCheckoutComplete(Request $request): View|RedirectResponse
     {
-        if($request->payment_method != 'cash_on_delivery'){
+        if ($request['payment_method'] != 'cash_on_delivery') {
             return back()->with('error', 'Something went wrong!');
         }
-        $unique_id = OrderManager::gen_unique_id();
-        $order_ids = [];
-        $cart_group_ids = CartManager::get_cart_group_ids();
-        $carts = Cart::whereIn('cart_group_id', $cart_group_ids)->get();
+        $uniqueID = OrderManager::gen_unique_id();
+        $orderIds = [];
+        $cartGroupIds = CartManager::get_cart_group_ids(request: $request, type: 'checked');
+        $carts = Cart::with('product')->whereIn('cart_group_id', $cartGroupIds)->where(['is_checked' => 1])->get();
 
-        $physical_product = false;
-        foreach($carts as $cart){
-            if($cart->product_type == 'physical'){
-                $physical_product = true;
+        $productStockCheck = CartManager::product_stock_check($carts);
+        if (!$productStockCheck) {
+            Toastr::error(translate('the_following_items_in_your_cart_are_currently_out_of_stock'));
+            return redirect()->route('shop-cart');
+        }
+
+        $verifyStatus = OrderManager::minimum_order_amount_verify($request);
+        if ($verifyStatus['status'] == 0) {
+            Toastr::info(translate('check_minimum_order_amount_requirement'));
+            return redirect()->route('shop-cart');
+        }
+
+        $physicalProductExist = false;
+        foreach ($carts as $cart) {
+            if ($cart->product_type == 'physical') {
+                $physicalProductExist = true;
             }
         }
 
-        if($physical_product) {
-            foreach ($cart_group_ids as $group_id) {
+        if ($physicalProductExist) {
+
+            if (session('newCustomerRegister')) {
+                $newCustomerRegister = session('newCustomerRegister');
+                if (User::where(['email' => $newCustomerRegister['email']])->orWhere(['phone' => $newCustomerRegister['phone']])->first()) {
+                    Toastr::error(translate('Already_registered'));
+                    return back();
+                }
+
+                $addCustomer = User::create([
+                    'name' => $newCustomerRegister['name'],
+                    'f_name' => $newCustomerRegister['name'],
+                    'l_name' => $newCustomerRegister['l_name'],
+                    'email' => $newCustomerRegister['email'],
+                    'phone' => $newCustomerRegister['phone'],
+                    'is_active' => 1,
+                    'password' => bcrypt($newCustomerRegister['password']),
+                    'referral_code' => $newCustomerRegister['referral_code'],
+                ]);
+                session()->put('newRegisterCustomerInfo', $addCustomer);
+
+                $customerID = session()->has('guest_id') ? session('guest_id') : 0;
+                ShippingAddress::where(['customer_id' => $customerID, 'is_guest' => 1, 'id' => session('address_id')])
+                    ->update(['customer_id' => $addCustomer['id'], 'is_guest' => 0]);
+                ShippingAddress::where(['customer_id' => $customerID, 'is_guest' => 1, 'id' => session('billing_address_id')])
+                    ->update(['customer_id' => $addCustomer['id'], 'is_guest' => 0]);
+            }
+
+            foreach ($cartGroupIds as $groupId) {
                 $data = [
                     'payment_method' => 'cash_on_delivery',
                     'order_status' => 'pending',
                     'payment_status' => 'unpaid',
                     'transaction_ref' => '',
-                    'order_group_id' => $unique_id,
-                    'cart_group_id' => $group_id
+                    'order_group_id' => $uniqueID,
+                    'cart_group_id' => $groupId
                 ];
-                $order_id = OrderManager::generate_order($data);
-                array_push($order_ids, $order_id);
+                $orderId = OrderManager::generate_order($data);
+                $orderIds[] = $orderId;
             }
 
             CartManager::cart_clean();
 
-            $stats = Stat::find(1);
-            if ($stats) {
-                $stats->increment('orders', 1);
-            }
-            return view(VIEW_FILE_NAMES['order_complete']);
+            $isNewCustomerInSession = session('newCustomerRegister');
+            session()->forget('newCustomerRegister');
+            session()->forget('newRegisterCustomerInfo');
+
+            return view(VIEW_FILE_NAMES['order_complete'], [
+                'order_ids' => $orderIds,
+                'isNewCustomerInSession' => $isNewCustomerInSession,
+            ]);
         }
 
         return back()->with('error', 'Something went wrong!');
     }
 
-    public function offline_payment_checkout_complete(Request $request)
+    public function getOfflinePaymentCheckoutComplete(Request $request): View|RedirectResponse
     {
-        if($request->payment_method != 'offline_payment'){
+        if ($request['payment_method'] != 'offline_payment') {
             return back()->with('error', 'Something went wrong!');
         }
-        $unique_id = OrderManager::gen_unique_id();
-        $order_ids = [];
-        $cart_group_ids = CartManager::get_cart_group_ids();
+        $genUniqueId = OrderManager::gen_unique_id();
+        $orderIds = [];
+        $cartGroupIds = CartManager::get_cart_group_ids(request: $request, type: 'checked');
+        $carts = Cart::with('product')->whereIn('cart_group_id', $cartGroupIds)->where(['is_checked' => 1])->get();
 
-        foreach ($cart_group_ids as $group_id) {
+        $productStockCheck = CartManager::product_stock_check($carts);
+        if (!$productStockCheck) {
+            Toastr::error(translate('the_following_items_in_your_cart_are_currently_out_of_stock'));
+            return redirect()->route('shop-cart');
+        }
+
+        $verifyStatus = OrderManager::minimum_order_amount_verify($request);
+        if ($verifyStatus['status'] == 0) {
+            Toastr::info(translate('check_minimum_order_amount_requirement'));
+            return redirect()->route('shop-cart');
+        }
+
+        $offlinePaymentInfo = [];
+        $method = OfflinePaymentMethod::where(['id' => $request['method_id'], 'status' => 1])->first();
+
+        if (isset($method)) {
+            $fields = array_column($method->method_informations, 'customer_input');
+            $values = $request->all();
+
+            $offlinePaymentInfo['method_id'] = $request['method_id'];
+            $offlinePaymentInfo['method_name'] = $method->method_name;
+            foreach ($fields as $field) {
+                if (key_exists($field, $values)) {
+                    $offlinePaymentInfo[$field] = $values[$field];
+                }
+            }
+        }
+
+        if (session('newCustomerRegister')) {
+            $newCustomerRegister = session('newCustomerRegister');
+            if (User::where(['email' => $newCustomerRegister['email']])->orWhere(['phone' => $newCustomerRegister['phone']])->first()) {
+                Toastr::error(translate('Already_registered'));
+                return back();
+            }
+
+            $addCustomer = User::create([
+                'name' => $newCustomerRegister['name'],
+                'f_name' => $newCustomerRegister['name'],
+                'l_name' => $newCustomerRegister['l_name'],
+                'email' => $newCustomerRegister['email'],
+                'phone' => $newCustomerRegister['phone'],
+                'is_active' => 1,
+                'password' => bcrypt($newCustomerRegister['password']),
+                'referral_code' => $newCustomerRegister['referral_code'],
+            ]);
+            session()->put('newRegisterCustomerInfo', $addCustomer);
+
+            $customerID = session()->has('guest_id') ? session('guest_id') : 0;
+            ShippingAddress::where(['customer_id' => $customerID, 'is_guest' => 1, 'id' => session('address_id')])
+                ->update(['customer_id' => $addCustomer['id'], 'is_guest' => 0]);
+            ShippingAddress::where(['customer_id' => $customerID, 'is_guest' => 1, 'id' => session('billing_address_id')])
+                ->update(['customer_id' => $addCustomer['id'], 'is_guest' => 0]);
+        }
+
+        foreach ($cartGroupIds as $cartGroupSingleId) {
             $data = [
                 'payment_method' => 'offline_payment',
                 'order_status' => 'pending',
                 'payment_status' => 'unpaid',
-                'transaction_ref' => $request->transaction_ref,
-                'payment_by' => $request->payment_by,
-                'payment_note' => $request->payment_note,
-                'order_group_id' => $unique_id,
-                'cart_group_id' => $group_id
+                'payment_note' => $request['payment_note'],
+                'order_group_id' => $genUniqueId,
+                'cart_group_id' => $cartGroupSingleId,
+                'offline_payment_info' => $offlinePaymentInfo,
             ];
-            $order_id = OrderManager::generate_order($data);
-            array_push($order_ids, $order_id);
+            $getOrderId = OrderManager::generate_order($data);
+            $orderIds[] = $getOrderId;
         }
 
         CartManager::cart_clean();
 
+        $isNewCustomerInSession = session('newCustomerRegister');
+        session()->forget('newCustomerRegister');
+        session()->forget('newRegisterCustomerInfo');
 
-        return view(VIEW_FILE_NAMES['order_complete']);
+        return view(VIEW_FILE_NAMES['order_complete'], [
+            'order_ids' => $orderIds,
+            'isNewCustomerInSession' => $isNewCustomerInSession,
+        ]);
     }
+
     public function checkout_complete_wallet(Request $request = null)
     {
-        $cartTotal = CartManager::cart_grand_total();
+        $cartTotal = CartManager::cart_grand_total(type: 'checked');
         $user = Helpers::get_customer($request);
-        if( $cartTotal > $user->wallet_balance)
-        {
-            Toastr::warning(translate('inefficient balance in your wallet to pay for this order!!'));
+        if ($cartTotal > $user->wallet_balance) {
+            Toastr::warning(translate('Inefficient_balance_in_your_wallet_to_pay_for_this_order') . '!!');
             return back();
-        }else{
+        } else {
             $unique_id = OrderManager::gen_unique_id();
+            $cart_group_ids = CartManager::get_cart_group_ids(type: 'checked');
+            $carts = Cart::with('product')
+                ->whereIn('cart_group_id', $cart_group_ids)
+                ->where(['is_checked' => 1])->get();
+
+            $productStockCheck = CartManager::product_stock_check($carts);
+            if (!$productStockCheck) {
+                Toastr::error(translate('the_following_items_in_your_cart_are_currently_out_of_stock'));
+                return redirect()->route('shop-cart');
+            }
+
+            $verifyStatus = OrderManager::minimum_order_amount_verify($request);
+            if ($verifyStatus['status'] == 0) {
+                Toastr::info(translate('check_minimum_order_amount_requirement'));
+                return redirect()->route('shop-cart');
+            }
+
             $order_ids = [];
-            foreach (CartManager::get_cart_group_ids() as $group_id) {
+            foreach ($cart_group_ids as $group_id) {
                 $data = [
                     'payment_method' => 'pay_by_wallet',
                     'order_status' => 'confirmed',
@@ -676,40 +690,79 @@ class WebController extends Controller
                     'cart_group_id' => $group_id
                 ];
                 $order_id = OrderManager::generate_order($data);
-                array_push($order_ids, $order_id);
+                $order_ids[] = $order_id;
             }
 
-            CustomerManager::create_wallet_transaction($user->id, Convert::default($cartTotal), 'order_place','order payment');
+            CustomerManager::create_wallet_transaction($user->id, Convert::default($cartTotal), 'order_place', 'order payment');
             CartManager::cart_clean();
         }
 
         if (session()->has('payment_mode') && session('payment_mode') == 'app') {
             return redirect()->route('payment-success');
         }
-        return view(VIEW_FILE_NAMES['order_complete']);
+
+        $isNewCustomerInSession = session('newCustomerRegister');
+        session()->forget('newCustomerRegister');
+        return view(VIEW_FILE_NAMES['order_complete'], compact('order_ids', 'isNewCustomerInSession'));
     }
 
-    public function order_placed()
+    public function order_placed(): View
     {
-        return view(VIEW_FILE_NAMES['order_complete']);
+        $isNewCustomerInSession = session('newCustomerRegister');
+        session()->forget('newCustomerRegister');
+        return view(VIEW_FILE_NAMES['order_complete'], compact('isNewCustomerInSession'));
     }
 
-    public function shop_cart(Request $request)
+    public function shop_cart(Request $request): View|RedirectResponse
     {
-        if (auth('customer')->check() && Cart::where(['customer_id' => auth('customer')->id()])->count() > 0) {
-            return view(VIEW_FILE_NAMES['cart_list']);
+        if (
+            (auth('customer')->check() && Cart::where(['customer_id' => auth('customer')->id()])->count() > 0)
+            || (getWebConfig(name: 'guest_checkout') && session()->has('guest_id') && session('guest_id'))
+        ) {
+            $topRatedShops = [];
+            $newSellers = [];
+            $currentDate = date('Y-m-d H:i:s');
+            if (theme_root_path() === "theme_fashion") {
+
+                $sellerList = $this->seller->approved()->with(['shop', 'product.reviews'])
+                    ->withCount(['product' => function ($query) {
+                        $query->active();
+                    }])->get();
+                $sellerList?->map(function ($seller) {
+                    $rating = 0;
+                    $count = 0;
+                    foreach ($seller->product as $item) {
+                        foreach ($item->reviews as $review) {
+                            $rating += $review->rating;
+                            $count++;
+                        }
+                    }
+                    $averageRating = $rating / ($count == 0 ? 1 : $count);
+                    $ratingCount = $count;
+                    $seller['average_rating'] = $averageRating;
+                    $seller['rating_count'] = $ratingCount;
+
+                    $productCount = $seller->product->count();
+                    $randomProduct = Arr::random($seller->product->toArray(), $productCount < 3 ? $productCount : 3);
+                    $seller['product'] = $randomProduct;
+                    return $seller;
+                });
+                $newSellers = $sellerList->sortByDesc('id')->take(12);
+                $topRatedShops = $sellerList->where('rating_count', '!=', 0)->sortByDesc('average_rating')->take(12);
+            }
+            return view(VIEW_FILE_NAMES['cart_list'], compact('topRatedShops', 'newSellers', 'currentDate', 'request'));
         }
-        Toastr::info(translate('no_items_in_basket'));
+        Toastr::info(translate('invalid_access'));
         return redirect('/');
     }
 
     //ajax filter (category based)
-    public function seller_shop_product(Request $request, $id)
+    public function seller_shop_product(Request $request, $id): View|JsonResponse
     {
-        $products = Product::active()->with('shop')->where(['added_by' => 'seller'])
-        ->where('user_id', $id)
-        ->whereJsonContains('category_ids', [
-            ['id' => strval($request->category_id)],
+        $products = Product::active()->withCount('reviews')->with('shop')->where(['added_by' => 'seller'])
+            ->where('user_id', $id)
+            ->whereJsonContains('category_ids', [
+                ['id' => strval($request->category_id)],
             ])
             ->paginate(12);
         $shop = Shop::where('seller_id', $id)->first();
@@ -721,58 +774,56 @@ class WebController extends Controller
             return response()->json([
                 'view' => view(VIEW_FILE_NAMES['products__ajax_partials'], compact('products'))->render(),
             ], 200);
-
         }
 
         return view(VIEW_FILE_NAMES['shop_view_page'], compact('products', 'shop'))->with('seller_id', $id);
     }
 
-    public function quick_view(Request $request)
+    public function getQuickView(Request $request): JsonResponse
     {
-        $product = ProductManager::get_product($request->product_id);
-        $product->increment('views');
+        $product = ProductManager::get_product($request['product_id']);
         $order_details = OrderDetail::where('product_id', $product->id)->get();
         $wishlists = Wishlist::where('product_id', $product->id)->get();
-        $wishlist_status = Wishlist::where(['product_id'=>$product->id, 'customer_id'=>auth('customer')->id()])->count();
+        $wishlist_status = Wishlist::where(['product_id' => $product->id, 'customer_id' => auth('customer')->id()])->count();
         $countOrder = count($order_details);
         $countWishlist = count($wishlists);
-        $relatedProducts = Product::with(['reviews'])->where('category_ids', $product->category_ids)->where('id', '!=', $product->id)->limit(12)->get();
-        $current_date = date('Y-m-d');
+        $relatedProducts = Product::with(['reviews'])->withCount('reviews')->where('category_ids', $product->category_ids)->where('id', '!=', $product->id)->limit(12)->get();
+        $currentDate = date('Y-m-d');
         $seller_vacation_start_date = ($product->added_by == 'seller' && isset($product->seller->shop->vacation_start_date)) ? date('Y-m-d', strtotime($product->seller->shop->vacation_start_date)) : null;
         $seller_vacation_end_date = ($product->added_by == 'seller' && isset($product->seller->shop->vacation_end_date)) ? date('Y-m-d', strtotime($product->seller->shop->vacation_end_date)) : null;
         $seller_temporary_close = ($product->added_by == 'seller' && isset($product->seller->shop->temporary_close)) ? $product->seller->shop->temporary_close : false;
 
-        $temporary_close = Helpers::get_business_settings('temporary_close');
-        $inhouse_vacation = Helpers::get_business_settings('vacation_add');
+        $temporary_close = getWebConfig(name: 'temporary_close');
+        $inhouse_vacation = getWebConfig(name: 'vacation_add');
         $inhouse_vacation_start_date = $product->added_by == 'admin' ? $inhouse_vacation['vacation_start_date'] : null;
         $inhouse_vacation_end_date = $product->added_by == 'admin' ? $inhouse_vacation['vacation_end_date'] : null;
-        $inhouse_vacation_status = $product->added_by == 'admin' ? $inhouse_vacation['status'] : false;
+        $inHouseVacationStatus = $product->added_by == 'admin' ? $inhouse_vacation['status'] : false;
         $inhouse_temporary_close = $product->added_by == 'admin' ? $temporary_close['status'] : false;
 
         // Newly Added From Blade
-        $overallRating = ProductManager::get_overall_rating($product->reviews);
-        $rating = ProductManager::get_rating($product->reviews);
-        $reviews_of_product = Review::where('product_id',$product->id)->latest()->paginate(2);
-        $decimal_point_settings = \App\CPU\Helpers::get_business_settings('decimal_point_settings');
-        $more_product_from_seller = Product::active()->where('added_by',$product->added_by)->where('id','!=',$product->id)->where('user_id',$product->user_id)->latest()->take(5)->get();
+        $overallRating = getOverallRating($product->reviews);
+        $rating = getRating($product->reviews);
+        $reviews_of_product = Review::where('product_id', $product->id)->latest()->paginate(2);
+        $decimal_point_settings = getWebConfig(name: 'decimal_point_settings');
+        $more_product_from_seller = Product::active()->withCount('reviews')->where('added_by', $product->added_by)->where('id', '!=', $product->id)->where('user_id', $product->user_id)->latest()->take(5)->get();
 
         return response()->json([
             'success' => 1,
             'product' => $product,
             'view' => view(VIEW_FILE_NAMES['product_quick_view_partials'], compact('product', 'countWishlist', 'countOrder',
-                'relatedProducts', 'current_date', 'seller_vacation_start_date', 'seller_vacation_end_date', 'seller_temporary_close',
-                'inhouse_vacation_start_date', 'inhouse_vacation_end_date','inhouse_vacation_status', 'inhouse_temporary_close','wishlist_status','overallRating'))->render(),
+                'relatedProducts', 'currentDate', 'seller_vacation_start_date', 'seller_vacation_end_date', 'seller_temporary_close',
+                'inhouse_vacation_start_date', 'inhouse_vacation_end_date', 'inHouseVacationStatus', 'inhouse_temporary_close', 'wishlist_status', 'overallRating', 'rating'))->render(),
         ]);
     }
 
-    public function discounted_products(Request $request)
+    public function discounted_products(Request $request): View|JsonResponse
     {
         $request['sort_by'] == null ? $request['sort_by'] == 'latest' : $request['sort_by'];
 
-        $porduct_data = Product::active()->with(['reviews']);
+        $productData = Product::active()->with(['reviews'])->withCount('reviews');
 
         if ($request['data_from'] == 'category') {
-            $products = $porduct_data->get();
+            $products = $productData->get();
             $product_ids = [];
             foreach ($products as $product) {
                 foreach (json_decode($product['category_ids'], true) as $category) {
@@ -781,15 +832,15 @@ class WebController extends Controller
                     }
                 }
             }
-            $query = $porduct_data->whereIn('id', $product_ids);
+            $query = $productData->whereIn('id', $product_ids);
         }
 
         if ($request['data_from'] == 'brand') {
-            $query = $porduct_data->where('brand_id', $request['id']);
+            $query = $productData->where('brand_id', $request['id']);
         }
 
         if ($request['data_from'] == 'latest') {
-            $query = $porduct_data->orderBy('id', 'DESC');
+            $query = $productData->orderBy('id', 'DESC');
         }
 
         if ($request['data_from'] == 'top-rated') {
@@ -800,7 +851,7 @@ class WebController extends Controller
             foreach ($reviews as $review) {
                 array_push($product_ids, $review['product_id']);
             }
-            $query = $porduct_data->whereIn('id', $product_ids);
+            $query = $productData->whereIn('id', $product_ids);
         }
 
         if ($request['data_from'] == 'best-selling') {
@@ -813,7 +864,7 @@ class WebController extends Controller
             foreach ($details as $detail) {
                 array_push($product_ids, $detail['product_id']);
             }
-            $query = $porduct_data->whereIn('id', $product_ids);
+            $query = $productData->whereIn('id', $product_ids);
         }
 
         if ($request['data_from'] == 'most-favorite') {
@@ -826,7 +877,7 @@ class WebController extends Controller
             foreach ($details as $detail) {
                 array_push($product_ids, $detail['product_id']);
             }
-            $query = $porduct_data->whereIn('id', $product_ids);
+            $query = $productData->whereIn('id', $product_ids);
         }
 
         if ($request['data_from'] == 'featured') {
@@ -835,7 +886,7 @@ class WebController extends Controller
 
         if ($request['data_from'] == 'search') {
             $key = explode(' ', $request['name']);
-            $query = $porduct_data->where(function ($q) use ($key) {
+            $query = $productData->where(function ($q) use ($key) {
                 foreach ($key as $value) {
                     $q->orWhere('name', 'like', "%{$value}%");
                 }
@@ -849,7 +900,6 @@ class WebController extends Controller
         if ($request['sort_by'] == 'latest') {
             $fetched = $query->latest();
         } elseif ($request['sort_by'] == 'low-high') {
-            return "low";
             $fetched = $query->orderBy('unit_price', 'ASC');
         } elseif ($request['sort_by'] == 'high-low') {
             $fetched = $query->orderBy('unit_price', 'DESC');
@@ -893,25 +943,25 @@ class WebController extends Controller
 
     }
 
-    public function viewWishlist(Request $request)
+    public function viewWishlist(Request $request): View
     {
         $brand_setting = BusinessSetting::where('type', 'product_brand')->first()->value;
 
         $wishlists = Wishlist::with([
-            'product_full_info',
-            'product_full_info.compare_list'=>function($query){
+            'productFullInfo',
+            'productFullInfo.compareList' => function ($query) {
                 return $query->where('user_id', auth('customer')->id() ?? 0);
             }
         ])
-        ->whereHas('wishlistProduct', function ($q) use ($request) {
-            $q->when($request['search'],function ($query) use ($request) {
-                $query->where('name', 'like', "%{$request['search']}%")
-                    ->orWhereHas('category', function ($qq) use ($request) {
-                        $qq->where('name', 'like', "%{$request['search']}%");
-                    });
-            });
-        })
-        ->where('customer_id', auth('customer')->id())->paginate(15);
+            ->whereHas('wishlistProduct', function ($q) use ($request) {
+                $q->when($request['search'], function ($query) use ($request) {
+                    $query->where('name', 'like', "%{$request['search']}%")
+                        ->orWhereHas('category', function ($qq) use ($request) {
+                            $qq->where('name', 'like', "%{$request['search']}%");
+                        });
+                });
+            })
+            ->where('customer_id', auth('customer')->id())->paginate(15);
 
         return view(VIEW_FILE_NAMES['account_wishlist'], compact('wishlists', 'brand_setting'));
     }
@@ -924,14 +974,16 @@ class WebController extends Controller
                 if ($wishlist) {
                     $wishlist->delete();
 
-                    $countWishlist = Wishlist::whereHas('wishlistProduct',function($q){
+                    $countWishlist = Wishlist::whereHas('wishlistProduct', function ($q) {
                         return $q;
                     })->where('customer_id', auth('customer')->id())->count();
                     $product_count = Wishlist::where(['product_id' => $request->product_id])->count();
+
+                    session()->forget('wish_list');
                     session()->put('wish_list', Wishlist::where('customer_id', auth('customer')->user()->id)->pluck('product_id')->toArray());
 
                     return response()->json([
-                        'error' => translate("wishlist_Removed"),
+                        'error' => translate("product_removed_from_the_wishlist"),
                         'value' => 2,
                         'count' => $countWishlist,
                         'product_count' => $product_count
@@ -943,11 +995,12 @@ class WebController extends Controller
                     $wishlist->product_id = $request->product_id;
                     $wishlist->save();
 
-                    $countWishlist = Wishlist::whereHas('wishlistProduct',function($q){
+                    $countWishlist = Wishlist::whereHas('wishlistProduct', function ($q) {
                         return $q;
                     })->where('customer_id', auth('customer')->id())->count();
 
                     $product_count = Wishlist::where(['product_id' => $request->product_id])->count();
+                    session()->forget('wish_list');
                     session()->put('wish_list', Wishlist::where('customer_id', auth('customer')->user()->id)->pluck('product_id')->toArray());
 
                     return response()->json([
@@ -964,13 +1017,14 @@ class WebController extends Controller
         }
     }
 
-    public function deleteWishlist(Request $request)
+    public function deleteWishlist(Request $request): JsonResponse
     {
         $this->wishlist->where(['product_id' => $request['id'], 'customer_id' => auth('customer')->id()])->delete();
-        $data = "Product has been remove from wishlist!";
+        $data = translate('product_has_been_remove_from_wishlist') . '!';
         $wishlists = $this->wishlist->where('customer_id', auth('customer')->id())->paginate(15);
         $brand_setting = BusinessSetting::where('type', 'product_brand')->first()->value;
-        session()->put('wish_list', $this->wishlist->where('customer_id', auth('customer')->user()->id)->pluck('product_id')->toArray());
+        session()->forget('wish_list');
+        session()->put('wish_list', $this->wishlist->where('customer_id', auth('customer')->id())->pluck('product_id')->toArray());
         return response()->json([
             'success' => $data,
             'count' => count($wishlists),
@@ -979,9 +1033,11 @@ class WebController extends Controller
         ]);
     }
 
-    public function delete_wishlist_all(){
+    public function deleteAllWishListItems(): RedirectResponse
+    {
         $this->wishlist->where('customer_id', auth('customer')->id())->delete();
-        session()->put('wish_list', $this->wishlist->where('customer_id', auth('customer')->user()->id)->pluck('product_id')->toArray());
+        session()->forget('wish_list');
+        session()->put('wish_list', $this->wishlist->where('customer_id', auth('customer')->id())->pluck('product_id')->toArray());
         return redirect()->back();
     }
 
@@ -1023,40 +1079,54 @@ class WebController extends Controller
                             $response = \file_get_contents($url);
                             $response = json_decode($response);
                             if (!$response->success) {
-                                $fail(\App\CPU\translate('ReCAPTCHA Failed'));
+                                $fail(translate('ReCAPTCHA Failed'));
                             }
                         },
                     ],
                 ]);
 
             } catch (\Exception $exception) {
-                return back()->withErrors(\App\CPU\translate('Captcha Failed'))->withInput($request->input());
+                return back()->withErrors(translate('Captcha Failed'))->withInput($request->input());
             }
         } else {
             if (strtolower($request->default_captcha_value) != strtolower(Session('default_captcha_code'))) {
                 Session::forget('default_captcha_code');
-                return back()->withErrors(\App\CPU\translate('Captcha Failed'))->withInput($request->input());
+                Toastr::error(translate('captcha_failed'));
+                return back()->withInput($request->input());
             }
         }
 
         $request->validate([
-            'mobile_number' => 'required',
+            'mobile_number' => 'required|max:20',
             'subject' => 'required',
             'message' => 'required',
+            'email' => 'email',
         ], [
-            'mobile_number.required' => 'Mobile Number is Empty!',
-            'subject.required' => ' Subject is Empty!',
-            'message.required' => 'Message is Empty!',
-
+            'mobile_number.required' => translate('phone_number_is_required'),
+            'mobile_number.max' => translate('The_phone_number_may_not_be_greater_than_20_characters'),
+            'subject.required' => translate('Subject_is_Empty'),
+            'message.required' => translate('Message_is_Empty'),
         ]);
+
+        $numericPhoneValue = preg_replace('/[^0-9]/', '', $request['mobile_number']);
+        $numericLength = strlen($numericPhoneValue);
+        if ($numericLength < 4 || $numericLength > 20) {
+            $request->validate([
+                'mobile_number' => 'min:5|max:20',
+            ], [
+                'mobile_number.min' => translate('The_phone_number_must_be_at_least_4_characters'),
+                'mobile_number.max' => translate('The_phone_number_may_not_be_greater_than_20_characters'),
+            ]);
+        }
+
         $contact = new Contact;
-        $contact->name = $request->name;
-        $contact->email = $request->email;
-        $contact->mobile_number = $request->mobile_number;
-        $contact->subject = $request->subject;
-        $contact->message = $request->message;
+        $contact->name = $request['name'];
+        $contact->email = $request['email'];
+        $contact->mobile_number = $request['mobile_number'];
+        $contact->subject = $request['subject'];
+        $contact->message = $request['message'];
         $contact->save();
-        Toastr::success(translate('Your Message Send Successfully'));
+        Toastr::success(translate('Your_Message_Send_Successfully'));
         return back();
     }
 
@@ -1073,7 +1143,7 @@ class WebController extends Controller
         $builder->build($width = 100, $height = 40, $font = null);
         $phrase = $builder->getPhrase();
 
-        if(Session::has('default_captcha_code')) {
+        if (Session::has('default_captcha_code')) {
             Session::forget('default_captcha_code');
         }
         Session::put('default_captcha_code', $phrase);
@@ -1085,88 +1155,549 @@ class WebController extends Controller
     public function order_note(Request $request)
     {
         if ($request->has('order_note')) {
-            session::put('order_note', $request->order_note);
+            session::put('order_note', $request['order_note']);
         }
-        return response()->json();
+        $response = self::checkValidationForCheckoutPages($request);
+        return response()->json($response);
     }
 
-    public function digital_product_download($id)
+    public function checkValidationForCheckoutPages(Request $request): array
     {
-        $order_data = OrderDetail::with('order.customer')->find($id);
-        $customer_id = auth('customer')->id();
-        if($order_data->order->customer->id != $customer_id){
-            Toastr::info(translate('Invalid customer'));
-            return redirect('/');
+        $response['status'] = 1;
+        $response['physical_product_view'] = false;
+        $message = [];
+
+        $verifyStatus = OrderManager::minimum_order_amount_verify($request);
+        if ($verifyStatus['status'] == 0) {
+            $response['status'] = 0;
+            $response['errorType'] = 'minimum-order-amount';
+            $response['redirect'] = route('shop-cart');
+            foreach ($verifyStatus['messages'] as $verifyStatusMessages) {
+                $message[] = $verifyStatusMessages;
+            }
         }
 
-        if( $order_data->product->digital_product_type == 'ready_product' && $order_data->product->digital_file_ready) {
-            $file_path = storage_path('app/public/product/digital-product/' .$order_data->product->digital_file_ready);
-        }else{
-            $file_path = storage_path('app/public/product/digital-product/' . $order_data->digital_file_after_sell);
+        $cartItemGroupIDsAll = CartManager::get_cart_group_ids();
+        $cartItemGroupIDs = CartManager::get_cart_group_ids(type: 'checked');
+        $shippingMethod = getWebConfig(name: 'shipping_method');
+
+        if (count($cartItemGroupIDsAll) <= 0) {
+            $response['status'] = 0;
+            $response['errorType'] = 'empty-cart';
+            $response['redirect'] = url('/');
+            $message[] = translate('no_items_in_basket');
+        } elseif (count($cartItemGroupIDs) <= 0) {
+            $response['status'] = 0;
+            $response['errorType'] = 'empty-shipping';
+            $response['redirect'] = route('shop-cart');
+            $message[] = translate('Please_add_or_checked_items_before_proceeding_to_checkout');
         }
 
-        return \response()->download($file_path);
+        $unavailableVendorsStatus = 0;
+        $inhouseShippingMsgCount = 0;
+
+        $isPhysicalProductExist = false;
+        $productStockStatus = true;
+        foreach ($cartItemGroupIDs as $groupId) {
+            $isPhysicalProductExist = false;
+            $cartList = Cart::where(['cart_group_id' => $groupId, 'is_checked' => 1])->get();
+            foreach ($cartList as $cart) {
+                if ($cart->product_type == 'physical') {
+                    $isPhysicalProductExist = true;
+                    $response['physical_product_view'] = true;
+                }
+            }
+
+            $cartList = Cart::with('product')->groupBy('cart_group_id')->where(['cart_group_id' => $groupId, 'is_checked' => 1])->get();
+            $productStockCheck = CartManager::product_stock_check($cartList);
+            if (!$productStockCheck) {
+                $productStockStatus = false;
+            }
+
+            foreach ($cartList as $cartKey => $cart) {
+                if ($cartKey == 0) {
+                    if ($cart->seller_is == 'admin') {
+                        $inhouseTemporaryClose = getWebConfig(name: 'temporary_close') ? getWebConfig(name: 'temporary_close')['status'] : 0;
+                        $inhouseVacation = getWebConfig(name: 'vacation_add');
+                        $vacationStartDate = $inhouseVacation['vacation_start_date'] ? date('Y-m-d', strtotime($inhouseVacation['vacation_start_date'])) : null;
+                        $vacationEndDate = $inhouseVacation['vacation_end_date'] ? date('Y-m-d', strtotime($inhouseVacation['vacation_end_date'])) : null;
+                        $vacationStatus = $inhouseVacation['status'] ?? 0;
+                        if ($inhouseTemporaryClose || ($vacationStatus && (date('Y-m-d') >= $vacationStartDate) && (date('Y-m-d') <= $vacationEndDate))) {
+                            $unavailableVendorsStatus = 1;
+                        }
+                    } else {
+                        $sellerInfo = Seller::where('id', $cart->seller_id)->first();
+                        if (!$sellerInfo || $sellerInfo->status != 'approved') {
+                            $unavailableVendorsStatus = 1;
+                        }
+                        if (!isset($sellerInfo->shop) || ($sellerInfo->shop->temporary_close)) {
+                            $unavailableVendorsStatus = 1;
+                        }
+
+                        if ($sellerInfo && $sellerInfo->shop->vacation_status) {
+                            $vacationStartDate = $sellerInfo->shop->vacation_start_date ? date('Y-m-d', strtotime($sellerInfo->shop->vacation_start_date)) : null;
+                            $vacationEndDate = $sellerInfo->shop->vacation_end_date ? date('Y-m-d', strtotime($sellerInfo->shop->vacation_end_date)) : null;
+                            if ((date('Y-m-d') >= $vacationStartDate) && (date('Y-m-d') <= $vacationEndDate)) {
+                                $unavailableVendorsStatus = 1;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if ($isPhysicalProductExist) {
+                foreach ($cartList as $cart) {
+                    if ($shippingMethod == 'inhouse_shipping') {
+                        $adminShipping = ShippingType::where('seller_id', 0)->first();
+                        $shippingType = isset($adminShipping) ? $adminShipping->shipping_type : 'order_wise';
+                    } else {
+                        if ($cart->seller_is == 'admin') {
+                            $adminShipping = ShippingType::where('seller_id', 0)->first();
+                            $shippingType = isset($adminShipping) ? $adminShipping->shipping_type : 'order_wise';
+                        } else {
+                            $sellerShipping = ShippingType::where('seller_id', $cart->seller_id)->first();
+                            $shippingType = isset($sellerShipping) ? $sellerShipping->shipping_type : 'order_wise';
+                        }
+                    }
+
+                    if ($isPhysicalProductExist && $shippingType == 'order_wise') {
+                        $sellerShippingCount = 0;
+                        if ($shippingMethod == 'inhouse_shipping') {
+                            $sellerShippingCount = ShippingMethod::where(['status' => 1])->where(['creator_type' => 'admin'])->count();
+                            if ($sellerShippingCount <= 0 && isset($cart->seller->shop)) {
+                                $message[] = translate('shipping_Not_Available_for') . ' ' . getWebConfig(name: 'company_name');
+                                $response['status'] = 0;
+                                $response['redirect'] = route('shop-cart');
+                            }
+                        } else {
+                            if ($cart->seller_is == 'admin') {
+                                $sellerShippingCount = ShippingMethod::where(['status' => 1])->where(['creator_type' => 'admin'])->count();
+                                if ($sellerShippingCount <= 0 && isset($cart->seller->shop)) {
+                                    $message[] = translate('shipping_Not_Available_for') . ' ' . getWebConfig(name: 'company_name');
+                                    $response['status'] = 0;
+                                    $response['redirect'] = route('shop-cart');
+                                }
+                            } else if ($cart->seller_is == 'seller') {
+                                $sellerShippingCount = ShippingMethod::where(['status' => 1])->where(['creator_id' => $cart->seller_id, 'creator_type' => 'seller'])->count();
+                                if ($sellerShippingCount <= 0 && isset($cart->seller->shop)) {
+                                    $message[] = translate('shipping_Not_Available_for') . ' ' . $cart->seller->shop->name;
+                                    $response['status'] = 0;
+                                    $response['redirect'] = route('shop-cart');
+                                }
+                            }
+                        }
+
+                        if ($sellerShippingCount > 0 && $shippingMethod == 'inhouse_shipping' && $inhouseShippingMsgCount < 1) {
+                            $cartShipping = CartShipping::where('cart_group_id', $cart->cart_group_id)->first();
+                            if (!isset($cartShipping)) {
+                                $response['status'] = 0;
+                                $response['errorType'] = 'empty-shipping';
+                                $response['redirect'] = route('shop-cart');
+                                $message[] = translate('select_shipping_method');
+                            }
+                            $inhouseShippingMsgCount++;
+                        } elseif ($sellerShippingCount > 0 && $shippingMethod != 'inhouse_shipping') {
+                            $cartShipping = CartShipping::where('cart_group_id', $cart->cart_group_id)->first();
+                            if (!isset($cartShipping)) {
+                                $response['status'] = 0;
+                                $response['errorType'] = 'empty-shipping';
+                                $response['redirect'] = route('shop-cart');
+                                $shopIdentity = $cart->seller_is == 'admin' ? getWebConfig(name: 'company_name') : $cart->seller->shop->name;
+                                $message[] = translate('select') . ' ' . $shopIdentity . ' ' . translate('shipping_method');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if ($unavailableVendorsStatus) {
+            $message[] = translate('please_remove_all_products_from_unavailable_vendors');
+            $response['status'] = 0;
+            $response['redirect'] = route('shop-cart');
+        }
+
+        if (!$productStockStatus) {
+            $message[] = translate('Please_remove_this_unavailable_product_for_continue');
+            $response['status'] = 0;
+            $response['redirect'] = route('shop-cart');
+        }
+
+        $response['message'] = $message;
+        return $response ?? [];
     }
+
+
+    public function getDigitalProductDownload($id, Request $request): JsonResponse
+    {
+
+        $orderDetailsData = OrderDetail::with('order.customer')->find($id);
+        if ($orderDetailsData) {
+            if ($orderDetailsData->order->payment_status !== "paid") {
+                return response()->json([
+                    'status' => 0,
+                    'message' => translate('Payment_must_be_confirmed_first') . ' !!',
+                ]);
+            };
+
+            if ($orderDetailsData->order->is_guest) {
+                $customerEmail = $orderDetailsData->order->shipping_address_data ? $orderDetailsData->order->shipping_address_data->email : ($orderDetailsData->order->billing_address_data ? $orderDetailsData->order->billing_address_data->email : '');
+
+                $customerPhone = $orderDetailsData->order->shipping_address_data ? $orderDetailsData->order->shipping_address_data->phone : ($orderDetailsData->order->billing_address_data ? $orderDetailsData->order->billing_address_data->phone : '');
+
+                $customerData = ['email' => $customerEmail, 'phone' => $customerPhone];
+                return self::getDigitalProductDownloadProcess(orderDetailsData: $orderDetailsData, customer: $customerData);
+            } else {
+                if (auth('customer')->check() && auth('customer')->user()->id == $orderDetailsData->order->customer->id) {
+                    $fileName = '';
+                    $productDetails = json_decode($orderDetailsData['product_details']);
+                    if ($productDetails->digital_product_type == 'ready_product' && $productDetails->digital_file_ready) {
+                        $filePath = asset('storage/app/public/product/digital-product/' . $productDetails->digital_file_ready);
+                        $fileName = $productDetails->digital_file_ready;
+                    } else {
+                        $filePath = asset('storage/app/public/product/digital-product/' . $orderDetailsData['digital_file_after_sell']);
+                        $fileName = $orderDetailsData['digital_file_after_sell'];
+                    }
+
+                    if (!is_null($fileName) && (File::exists(base_path('storage/app/public/product/digital-product/' . $fileName)))) {
+                        return response()->json([
+                            'status' => 1,
+                            'file_path' => $filePath,
+                            'file_name' => $fileName,
+                        ]);
+                    } else {
+                        return response()->json([
+                            'status' => 0,
+                            'message' => translate('file_not_found'),
+                        ]);
+                    }
+                } else {
+                    $customerData = ['email' => $orderDetailsData->order->customer->email ?? '', 'phone' => $orderDetailsData->order->customer->phone ?? ''];
+                    return self::getDigitalProductDownloadProcess(orderDetailsData: $orderDetailsData, customer: $customerData);
+                }
+            }
+        } else {
+            return response()->json([
+                'status' => 0,
+                'message' => translate('order_Not_Found') . ' !',
+            ]);
+        }
+    }
+
+    public function getDigitalProductDownloadOtpVerify(Request $request): JsonResponse
+    {
+        $verification = DigitalProductOtpVerification::where(['token' => $request->otp, 'order_details_id' => $request->order_details_id])->first();
+        $orderDetailsData = OrderDetail::with('order.customer')->find($request->order_details_id);
+
+        if ($verification) {
+            $fileName = '';
+            if ($orderDetailsData) {
+                $productDetails = json_decode($orderDetailsData['product_details']);
+                if ($productDetails->digital_product_type == 'ready_product' && $productDetails->digital_file_ready) {
+                    $filePath = asset('storage/app/public/product/digital-product/' . $productDetails->digital_file_ready);
+                    $fileName = $productDetails->digital_file_ready;
+                } else {
+                    $filePath = asset('storage/app/public/product/digital-product/' . $orderDetailsData['digital_file_after_sell']);
+                    $fileName = $orderDetailsData['digital_file_after_sell'];
+                }
+            }
+
+            DigitalProductOtpVerification::where(['token' => $request->otp, 'order_details_id' => $request->order_details_id])->delete();
+
+            if (File::exists(base_path('storage/app/public/product/digital-product/' . $fileName))) {
+                return response()->json([
+                    'status' => 1,
+                    'file_path' => $filePath ?? '',
+                    'file_name' => $fileName ?? '',
+                    'message' => translate('successfully_verified'),
+                ]);
+            } else {
+                return response()->json([
+                    'status' => 0,
+                    'message' => translate('file_not_found'),
+                ]);
+            }
+        } else {
+            return response()->json([
+                'status' => 0,
+                'message' => translate('the_OTP_is_incorrect') . ' !',
+            ]);
+        }
+    }
+
+    public function getDigitalProductDownloadOtpReset(Request $request): JsonResponse
+    {
+        $tokenInfo = DigitalProductOtpVerification::where(['order_details_id' => $request->order_details_id])->first();
+        $otpIntervalTime = getWebConfig(name: 'otp_resend_time') ?? 1; //minute
+        if (isset($tokenInfo) && Carbon::parse($tokenInfo->created_at)->diffInSeconds() < $otpIntervalTime) {
+            $timeCount = $otpIntervalTime - Carbon::parse($tokenInfo->created_at)->diffInSeconds();
+
+            return response()->json([
+                'status' => 0,
+                'time_count' => CarbonInterval::seconds($timeCount)->cascade()->forHumans(),
+                'message' => translate('Please_try_again_after') . ' ' . CarbonInterval::seconds($timeCount)->cascade()->forHumans()
+            ]);
+        } else {
+            $guestEmail = '';
+            $guestPhone = '';
+            $token = rand(1000, 9999);
+
+            $orderDetailsData = OrderDetail::with('order.customer')->find($request->order_details_id);
+
+            try {
+                if ($orderDetailsData->order->is_guest) {
+                    if ($orderDetailsData->order->shipping_address_data) {
+                        $guestName = $orderDetailsData->order->shipping_address_data ? $orderDetailsData->order->shipping_address_data->contact_person_name : null;
+                        $guestEmail = $orderDetailsData->order->shipping_address_data ? $orderDetailsData->order->shipping_address_data->email : null;
+                        $guestPhone = $orderDetailsData->order->shipping_address_data ? $orderDetailsData->order->shipping_address_data->phone : null;
+                    } else {
+                        $guestName = $orderDetailsData->order->billing_address_data ? $orderDetailsData->order->billing_address_data->contact_person_name : null;
+                        $guestEmail = $orderDetailsData->order->billing_address_data ? $orderDetailsData->order->billing_address_data->email : null;
+                        $guestPhone = $orderDetailsData->order->billing_address_data ? $orderDetailsData->order->billing_address_data->phone : null;
+                    }
+                } else {
+                    $guestName = $orderDetailsData->order->customer->f_name;
+                    $guestEmail = $orderDetailsData->order->customer->email;
+                    $guestPhone = $orderDetailsData->order->customer->phone;
+                }
+            } catch (\Throwable $th) {
+
+            }
+
+            $verifyData = [
+                'order_details_id' => $orderDetailsData->id,
+                'token' => $token,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            DigitalProductOtpVerification::updateOrInsert(['identity' => $guestEmail, 'order_details_id' => $orderDetailsData->id], $verifyData);
+            DigitalProductOtpVerification::updateOrInsert(['identity' => $guestPhone, 'order_details_id' => $orderDetailsData->id], $verifyData);
+
+            $emailServicesSmtp = getWebConfig(name: 'mail_config');
+            if ($emailServicesSmtp['status'] == 0) {
+                $emailServicesSmtp = getWebConfig(name: 'mail_config_sendgrid');
+            }
+
+            if ($emailServicesSmtp['status'] == 1) {
+                try {
+                    $data = [
+                        'userName' => $guestName,
+                        'userType' => 'customer',
+                        'templateName' => 'digital-product-otp',
+                        'subject' => translate('verification_Code'),
+                        'title' => translate('verification_Code') . '!',
+                        'verificationCode' => $token,
+                    ];
+                    event(new DigitalProductOtpVerificationEvent(email: $guestEmail, data: $data));
+                    $mailStatus = 1;
+                } catch (\Exception $exception) {
+                    $mailStatus = 0;
+                }
+            } else {
+                $mailStatus = 0;
+            }
+
+            $publishedStatus = 0;
+            $paymentPublishedStatus = config('get_payment_publish_status');
+            if (isset($paymentPublishedStatus[0]['is_published'])) {
+                $publishedStatus = $paymentPublishedStatus[0]['is_published'];
+            }
+
+            $response = '';
+            if ($publishedStatus == 1) {
+                $response = $this->send(receiver: $guestPhone, otp: $token);
+            } else {
+                $response = SMS_module::send($guestPhone, $token);
+            }
+
+            $smsStatus = $response == "not_found" ? 0 : 1;
+
+            return response()->json([
+                'mail_status' => $mailStatus,
+                'sms_status' => $smsStatus,
+                'status' => ($mailStatus || $smsStatus) ? 1 : 0,
+                'new_time' => $otpIntervalTime,
+                'message' => ($mailStatus || $smsStatus) ? translate('OTP_sent_successfully') : translate('OTP_sent_fail'),
+            ]);
+
+        }
+    }
+
+    public function getDigitalProductDownloadProcess($orderDetailsData, $customer): JsonResponse
+    {
+        $status = 2;
+        $emailServicesSmtp = getWebConfig(name: 'mail_config');
+        if ($emailServicesSmtp['status'] == 0) {
+            $emailServicesSmtp = getWebConfig(name: 'mail_config_sendgrid');
+        }
+
+        $paymentPublishedStatus = config('get_payment_publish_status');
+        $publishedStatus = isset($paymentPublishedStatus[0]['is_published']) ? $paymentPublishedStatus[0]['is_published'] : 0;
+
+        if ($publishedStatus == 1) {
+            $smsConfigStatus = Setting::where(['settings_type' => 'sms_config', 'is_active' => 1])->count() > 0 ? 1 : 0;
+        } else {
+            $smsConfigStatus = Setting::where(['settings_type' => 'sms_config', 'is_active' => 1])->whereIn('key_name', Helpers::default_sms_gateways())->count() > 0 ? 1 : 0;
+        }
+
+        if ($emailServicesSmtp['status'] || $smsConfigStatus) {
+            $token = rand(1000, 9999);
+            if ($customer['email'] == '' && $customer['phone'] == '') {
+                return response()->json([
+                    'status' => $status,
+                    'file_path' => '',
+                    'view' => view(VIEW_FILE_NAMES['digital_product_order_otp_verify_failed'])->render(),
+                ]);
+            }
+
+            $verificationData = DigitalProductOtpVerification::where('identity', $customer['email'])->orWhere('identity', $customer['phone'])->where('order_details_id', $orderDetailsData->id)->latest()->first();
+            $otpIntervalTime = getWebConfig(name: 'otp_resend_time') ?? 1; //second
+
+            if (isset($verificationData) && Carbon::parse($verificationData->created_at)->diffInSeconds() < $otpIntervalTime) {
+                $timeCount = $otpIntervalTime - Carbon::parse($verificationData->created_at)->diffInSeconds();
+                return response()->json([
+                    'status' => $status,
+                    'file_path' => '',
+                    'view' => view(VIEW_FILE_NAMES['digital_product_order_otp_verify'], ['orderDetailID' => $orderDetailsData->id, 'time_count' => $timeCount])->render(),
+                ]);
+            } else {
+                $verifyData = [
+                    'order_details_id' => $orderDetailsData->id,
+                    'token' => $token,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+
+                DigitalProductOtpVerification::updateOrInsert(['identity' => $customer['email'], 'order_details_id' => $orderDetailsData->id], $verifyData);
+                DigitalProductOtpVerification::updateOrInsert(['identity' => $customer['phone'], 'order_details_id' => $orderDetailsData->id], $verifyData);
+
+                $resetData = DigitalProductOtpVerification::where('identity', $customer['email'])->orWhere('identity', $customer['phone'])->where('order_details_id', $orderDetailsData->id)->latest()->first();
+                $otpResendTime = getWebConfig(name: 'otp_resend_time') > 0 ? getWebConfig(name: 'otp_resend_time') : 0;
+                $tokenTime = Carbon::parse($resetData->created_at);
+                $convertTime = $tokenTime->addSeconds($otpResendTime);
+                $timeCount = $convertTime > Carbon::now() ? Carbon::now()->diffInSeconds($convertTime) : 0;
+                $mailStatus = 0;
+
+                if ($emailServicesSmtp['status'] == 1) {
+                    try {
+                        $data = [
+                            'userName' => $customer['f_name'],
+                            'userType' => 'customer',
+                            'templateName' => 'digital-product-otp',
+                            'subject' => translate('verification_Code'),
+                            'title' => translate('verification_Code') . '!',
+                            'verificationCode' => $token,
+                        ];
+                        event(new DigitalProductOtpVerificationEvent(email: $customer['email'], data: $data));
+                        $mailStatus = 1;
+                    } catch (\Exception $exception) {
+                    }
+                }
+
+                $response = '';
+                if ($smsConfigStatus && $publishedStatus == 1) {
+                    $response = SmsGateway::send($customer['phone'], $token);
+                } else if ($smsConfigStatus && $publishedStatus == 0) {
+                    $response = SMS_module::send($customer['phone'], $token);
+                }
+
+                $smsStatus = ($response == "not_found" || $smsConfigStatus == 0) ? 0 : 1;
+                if ($mailStatus || $smsStatus) {
+                    return response()->json([
+                        'status' => $status,
+                        'file_path' => '',
+                        'view' => view(VIEW_FILE_NAMES['digital_product_order_otp_verify'], ['orderDetailID' => $orderDetailsData->id, 'time_count' => $timeCount])->render(),
+                    ]);
+                } else {
+                    return response()->json([
+                        'status' => $status,
+                        'file_path' => '',
+                        'view' => view(VIEW_FILE_NAMES['digital_product_order_otp_verify_failed'])->render(),
+                    ]);
+                }
+            }
+        } else {
+            return response()->json([
+                'status' => $status,
+                'file_path' => '',
+                'view' => view(VIEW_FILE_NAMES['digital_product_order_otp_verify_failed'])->render(),
+            ]);
+        }
+    }
+
 
     public function subscription(Request $request)
     {
-        $subscription_email = Subscription::where('email',$request->subscription_email)->first();
-        if(isset($subscription_email))
-        {
-            Toastr::info(translate('You already subcribed this site!!'));
-            return back();
-        }else{
-            $new_subcription = new Subscription;
-            $new_subcription->email = $request->subscription_email;
-            $new_subcription->save();
+        $request->validate([
+            'subscription_email' => 'required|email'
+        ]);
+        $subscriptionEmail = Subscription::where('email', $request['subscription_email'])->first();
 
-            Toastr::success(translate('Your subscription successfully done!!'));
-            return back();
-
+        if (isset($subscriptionEmail)) {
+            Toastr::info(translate('You_already_subscribed_this_site'));
+        } else {
+            $newSubscription = new Subscription;
+            $newSubscription->email = $request['subscription_email'];
+            $newSubscription->save();
+            Toastr::success(translate('Your_subscription_successfully_done'));
         }
-
+        if (str_contains(url()->previous(), 'checkout-complete') || str_contains(url()->previous(), 'web-payment')) {
+            return redirect()->route('home');
+        }
+        return back();
     }
+
     public function review_list_product(Request $request)
     {
-        $productReviews =Review::where('product_id',$request->product_id)->latest()->paginate(2, ['*'], 'page', $request->offset);
-        $checkReviews =Review::where('product_id',$request->product_id)->latest()->paginate(2, ['*'], 'page', ($request->offset+1));
+        $productReviews = Review::where('product_id', $request->product_id)->latest()->paginate(2, ['*'], 'page', $request->offset + 1);
+        $checkReviews = Review::where('product_id', $request->product_id)->latest()->paginate(2, ['*'], 'page', ($request->offset + 1));
         return response()->json([
-            'productReview'=> view(VIEW_FILE_NAMES['product_reviews_partials'],compact('productReviews'))->render(),
-            'not_empty'=>$productReviews->count(),
-            'checkReviews'=>$checkReviews->count(),
+            'productReview' => view(VIEW_FILE_NAMES['product_reviews_partials'], compact('productReviews'))->render(),
+            'not_empty' => $productReviews->count(),
+            'checkReviews' => $checkReviews->count(),
         ]);
     }
-    public function review_list_shop(Request $request)
+
+    public function getShopReviewList(Request $request): JsonResponse
     {
-        $seller_id = 0;
-        if($request->shop_id != 0)
-        {
-            $seller_id = Shop::where('id',$request->shop_id)->first()->seller_id;
+        $sellerId = 0;
+        if ($request['shop_id'] != 0) {
+            $sellerId = Shop::where('id', $request['shop_id'])->first()->seller_id;
         }
-        $product_ids = Product::active()
-            ->when($request->shop_id == 0, function ($query) {
+        $getProductIds = Product::active()
+            ->when($request['shop_id'] == 0, function ($query) {
                 return $query->where(['added_by' => 'admin']);
             })
-            ->when($request->shop_id != 0, function ($query) use ($seller_id) {
-                return $query->where(['added_by' => 'seller'])
-                    ->where('user_id', $seller_id);
+            ->when($request['shop_id'] != 0, function ($query) use ($sellerId) {
+                return $query->where(['added_by' => 'seller', 'user_id' => $sellerId]);
             })
             ->pluck('id')->toArray();
 
-        $productReviews =Review::whereIn('product_id',$product_ids)->latest()->paginate(4, ['*'], 'page', $request->offset);
-        $checkReviews =Review::whereIn('product_id',$product_ids)->latest()->paginate(4, ['*'], 'page', ($request->offset+1));
-        // dd($productReviews);
+        $productReviews = Review::active()->whereIn('product_id', $getProductIds)->latest()->paginate(4, ['*'], 'page', $request['offset'] + 1);
+        $checkReviews = Review::active()->whereIn('product_id', $getProductIds)->latest()->paginate(4, ['*'], 'page', ($request['offset'] + 1));
+
         return response()->json([
-            'productReview'=> view(VIEW_FILE_NAMES['product_reviews_partials'],compact('productReviews'))->render(),
-            'not_empty'=>$productReviews->count(),
-            'checkReviews'=>$checkReviews->count(),
+            'productReview' => view(VIEW_FILE_NAMES['product_reviews_partials'], compact('productReviews'))->render(),
+            'not_empty' => $productReviews->count(),
+            'checkReviews' => $checkReviews->count(),
         ]);
     }
+
     public function product_view_style(Request $request)
     {
         Session::put('product_view_style', $request->value);
         return response()->json([
-            'message'=>translate('View_style_updated')."!",
+            'message' => translate('View_style_updated') . "!",
+        ]);
+    }
+
+
+    public function pay_offline_method_list(Request $request)
+    {
+        $method = OfflinePaymentMethod::where(['id' => $request->method_id, 'status' => 1])->first();
+        return response()->json([
+            'methodHtml' => view(VIEW_FILE_NAMES['pay_offline_method_list_partials'], compact('method'))->render(),
         ]);
     }
 

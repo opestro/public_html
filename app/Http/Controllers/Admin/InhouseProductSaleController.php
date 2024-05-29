@@ -2,26 +2,44 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\CPU\Helpers;
-use App\Http\Controllers\Controller;
-use App\Model\Category;
-use App\Model\Product;
+use App\Contracts\Repositories\CategoryRepositoryInterface;
+use App\Contracts\Repositories\ProductRepositoryInterface;
+use App\Enums\ViewPaths\Admin\InhouseProductSale;
+use App\Http\Controllers\BaseController;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use App\Model\OrderDetail;
+use Illuminate\Pagination\LengthAwarePaginator;
 
-class InhouseProductSaleController extends Controller
+class InhouseProductSaleController extends BaseController
 {
-    public function index(Request $request)
+    public function __construct(
+        private readonly CategoryRepositoryInterface $categoryRepo,
+        private readonly ProductRepositoryInterface  $productRepo,
+    )
     {
-        $categories = Category::where(['parent_id' => 0])->get();
-        $query_param = ['category_id' => $request['category_id']];
+    }
 
-        $products = Product::where(['added_by' => 'admin'])
-            ->when($request->has('category_id') && $request['category_id'] != 'all', function ($query) use ($request) {
-                $query->whereJsonContains('category_ids', [[['id' => (string)$request['category_id']]]]);
-            })->with(['order_details'])->paginate(Helpers::pagination_limit())->appends($query_param);
-        $category_id = $request['category_id'];
+    /**
+     * @param Request|null $request
+     * @param string|null $type
+     * @return View|Collection|LengthAwarePaginator|callable|RedirectResponse|null
+     * Index function is the starting point of a controller
+     */
+    public function index(Request|null $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
+    {
+        return $this->getListView(request: $request);
+    }
 
-        return view('admin-views.report.inhouse-product-sale', compact('categories', 'category_id', 'products'));
+    public function getListView(Request $request): View
+    {
+        $categories = $this->categoryRepo->getListWhere(filters: ['parent_id' => 0], dataLimit: 'all');
+        $products = $this->productRepo->getListWhere(
+            filters: ['added_by'=>'in_house', 'category_id'=>$request['category_id']],
+            relations: ['orderDetails'],
+            dataLimit: getWebConfig(name: 'pagination_limit'),
+        );
+        return view(InhouseProductSale::VIEW[VIEW], compact('categories', 'products'));
     }
 }

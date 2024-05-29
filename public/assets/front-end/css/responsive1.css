@@ -66,7 +66,7 @@ a {
     font-weight: 600 !important;
 }
 
-.footer-heder {
+.footer-header {
     color: #ffffff;
 }
 
@@ -96,4 +96,61 @@ a {
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
+}
+
+@media (max-width: 575px) {
+    .mobile-fs-20 {
+        font-size: 16px !important;
+        font-weight: 700 !important;
+    }
+}
+
+body {
+    overflow-x: hidden !important;
+}
+
+.offline_payment_button {
+    border-radius: 10px;
+    border: 1px solid #E4F4FF;
+}
+
+.bg-primary-light {
+    background-color: #F3FAFD !important;
+}
+
+.__text-60px {
+    font-size: 60px !important;
+}
+
+@media (max-width: 575px) {
+    .chat_with_seller-buttons {
+        position: absolute;
+        right: 0;
+        top: 0;
+    }
+    .chat_with_seller-buttons .btn {
+        padding: 5px;
+        width: 35px;
+        min-width: 35px;
+        height: 35px;
+        display: grid;
+        place-items: center;
+    }
+    .fs-18-mobile {
+        font-size: 18px !important;
+    }
+    .support_ticket_head-media img {
+        width: 40px;
+    }
+    .support_ticket_head-media h6 {
+        font-size: 14px;
+        font-weight: bold;
+    }
+    .support_ticket_head-media .meta-info {
+        font-size: 12px;
+        column-gap: .5rem;
+    }
+    .time_date {
+        color: #D9D9D9;
+    }
 }

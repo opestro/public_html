@@ -2,10 +2,9 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\CPU\Helpers;
+use App\Utils\Helpers;
 use App\Http\Controllers\Controller;
-use App\Model\OrderTransaction;
-use App\Model\Transaction;
+use App\Models\OrderTransaction;
 use App\User;
 use Illuminate\Http\Request;
 use Rap2hpoutre\FastExcel\FastExcel;
@@ -60,7 +59,8 @@ class TransactionController extends Controller
      * @throws \Box\Spout\Common\Exception\UnsupportedTypeException
      * @throws \Box\Spout\Writer\Exception\WriterNotOpenedException
      */
-    public function export(Request $request){
+    public function export(Request $request): \Symfony\Component\HttpFoundation\StreamedResponse|string
+    {
         $from         = $request['from'];
         $to           = $request['to'];
         $customer_id  = $request['customer_id'];
@@ -84,19 +84,19 @@ class TransactionController extends Controller
         $tranData = array();
         foreach($transactions as $tran){
             if($tran['seller_is'] == 'admin'){
-                $seller_name = \App\CPU\Helpers::get_business_settings('company_name');
+                $seller_name = \App\Utils\Helpers::get_business_settings('company_name');
             }else{
-                $seller_name = $tran->seller ? $tran->seller->f_name .' '. $tran->seller->l_name : \App\CPU\translate('not_found');
+                $seller_name = $tran->seller ? $tran->seller->f_name .' '. $tran->seller->l_name : translate('not_found');
             }
 
             $tranData[] = array(
                 'Seller Name' => $seller_name,
-                'Customer Name' => $tran->customer ? $tran->customer->f_name.' '.$tran->customer->l_name : \App\CPU\translate('not_found'),
+                'Customer Name' => $tran->customer ? $tran->customer->f_name.' '.$tran->customer->l_name : translate('not_found'),
                 'Order ID' => $tran->order_id,
                 'Transaction ID' => $tran->transaction_id,
-                'Order Amount' => \App\CPU\BackEndHelper::set_symbol(\App\CPU\BackEndHelper::usd_to_currency($tran->order_amount)),
-                'Seller Amount' => \App\CPU\BackEndHelper::set_symbol(\App\CPU\BackEndHelper::usd_to_currency($tran->seller_amount)),
-                'Admin Commission' => \App\CPU\BackEndHelper::set_symbol(\App\CPU\BackEndHelper::usd_to_currency($tran->admin_commission)),
+                'Order Amount' => \App\Utils\BackEndHelper::set_symbol(\App\Utils\BackEndHelper::usd_to_currency($tran->order_amount)),
+                'Seller Amount' => \App\Utils\BackEndHelper::set_symbol(\App\Utils\BackEndHelper::usd_to_currency($tran->seller_amount)),
+                'Admin Commission' => \App\Utils\BackEndHelper::set_symbol(\App\Utils\BackEndHelper::usd_to_currency($tran->admin_commission)),
                 'Received By' => $tran->received_by,
                 'Delivered By' => $tran->delivered_by,
                 'Delivery Charge' => $tran->delivery_charge,

@@ -3,10 +3,10 @@
     <tr>
         <th scope="col">#</th>
         <th scope="col">
-            {{\App\CPU\translate('Product Name')}} <label class="badge badge-success ml-3 cursor-pointer">{{\App\CPU\translate('Asc/Dsc')}}</label>
+            {{translate('product_Name')}} <label class="badge badge-success ml-3 cursor-pointer">{{translate('Asc/Dsc')}}</label>
         </th>
         <th scope="col">
-            {{\App\CPU\translate('Total Sale')}} <label class="badge badge-success ml-3 cursor-pointer">{{\App\CPU\translate('Asc/Dsc')}}</label>
+            {{translate('total_Sale')}} <label class="badge badge-success ml-3 cursor-pointer">{{translate('Asc/Dsc')}}</label>
         </th>
     </tr>
     </thead>
@@ -22,12 +22,11 @@
 </table>
 
 <script type="text/javascript">
+    'use strict';
     $(document).ready(function () {
         $('input').addClass('form-control');
     });
 
-    // INITIALIZATION OF DATATABLES
-    // =======================================================
     var datatable = $.HSCore.components.HSDatatables.init($('#datatable'), {
         dom: 'Bfrtip',
         buttons: [
@@ -63,7 +62,7 @@
         },
         language: {
             zeroRecords: '<div class="text-center p-4">' +
-                '<img class="mb-3" src="{{asset('public/assets/back-end')}}/svg/illustrations/sorry.svg" alt="Image Description" style="width: 7rem;">' +
+                '<img class="mb-3" src="{{dynamicAsset(path: 'public/assets/back-end')}}/svg/illustrations/sorry.svg" alt="Image Description" style="width: 7rem;">' +
                 '<p class="mb-0">No data to show</p>' +
                 '</div>'
         }

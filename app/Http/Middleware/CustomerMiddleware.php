@@ -5,7 +5,6 @@ namespace App\Http\Middleware;
 use Brian2694\Toastr\Facades\Toastr;
 use Closure;
 use Illuminate\Support\Facades\Auth;
-use function App\CPU\translate;
 
 class CustomerMiddleware
 {
@@ -20,10 +19,12 @@ class CustomerMiddleware
     {
         if (Auth::guard('customer')->check() && auth('customer')->user()->is_active) {
             return $next($request);
-        }elseif (Auth::guard('customer')->check()){
+        } elseif (Auth::guard('customer')->check()) {
             auth()->guard('customer')->logout();
+            Toastr::warning(translate('the_account_is_suspended'));
+        } else {
+            Toastr::info(translate('login_first_for_next_steps'));
         }
-        Toastr::info(translate('login_first_for_next_steps'));
         return redirect()->route('customer.auth.login');
     }
 }

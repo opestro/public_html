@@ -2,93 +2,77 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Contracts\Repositories\BusinessSettingRepositoryInterface;
+use App\Contracts\Repositories\HelpTopicRepositoryInterface;
 use App\Http\Controllers\Controller;
-use App\Model\BusinessSetting;
-use App\Model\HelpTopic;
-use Illuminate\Http\Request;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 
 class PageController extends Controller
 {
-    public function helpTopic()
+    public function __construct(
+        private readonly BusinessSettingRepositoryInterface $businessSettingRepo,
+        private readonly HelpTopicRepositoryInterface       $helpTopicRepo,
+    )
     {
-        $helps = HelpTopic::Status()->latest()->get();
-        return view(VIEW_FILE_NAMES['faq'], compact('helps'));
-    }
-    
-    public function steps_seller()
-    {
-       
-        return view(VIEW_FILE_NAMES['steps_seller']);
-    }
-     public function selling_on_nichen()
-    {
-       
-        return view(VIEW_FILE_NAMES['selling-on-nichen']);
-    }
-    
-    
-    
-    
-        public function offers()
-    {
-       
-        return view(VIEW_FILE_NAMES['our_offers']);
     }
 
-    
-    public function contacts()
+    public function getAboutUsView(): View
     {
-        $recaptcha = \App\CPU\Helpers::get_business_settings('recaptcha');
-        return view(VIEW_FILE_NAMES['contacts'],compact('recaptcha'));
+        $aboutUs = getWebConfig(name: 'about_us');
+        $pageTitleBanner = $this->businessSettingRepo->whereJsonContains(params: ['type' => 'banner_about_us'], value: ['status' => '1']);
+        return view(VIEW_FILE_NAMES['about_us'], compact('aboutUs', 'pageTitleBanner'));
     }
 
-    public function about_us()
+    public function getContactView(): View
     {
-        $about_us = BusinessSetting::where('type', 'about_us')->first();
-        return view(VIEW_FILE_NAMES['about_us'], [
-            'about_us' => $about_us,
-        ]);
+        $recaptcha = getWebConfig(name: 'recaptcha');
+        return view(VIEW_FILE_NAMES['contacts'], compact('recaptcha'));
     }
 
-    public function termsand_condition()
+    public function getHelpTopicView(): View
     {
-        $terms_condition = BusinessSetting::where('type', 'terms_condition')->first();
-        return view(VIEW_FILE_NAMES['terms_conditions_page'], compact('terms_condition'));
+        $helps = $this->helpTopicRepo->getListWhere(orderBy: ['id' => 'desc'], filters: ['status' => 1,'type'=>'default'], dataLimit: 'all');
+        $pageTitleBanner = $this->businessSettingRepo->whereJsonContains(params: ['type' => 'banner_faq_page'], value: ['status' => '1']);
+        return view(VIEW_FILE_NAMES['faq'], compact('helps', 'pageTitleBanner'));
     }
 
-    public function privacy_policy()
+    public function getRefundPolicyView(): View|RedirectResponse
     {
-        $privacy_policy = BusinessSetting::where('type', 'privacy_policy')->first();
-        return view(VIEW_FILE_NAMES['privacy_policy_page'], compact('privacy_policy'));
+        $refundPolicy = getWebConfig(name: 'refund-policy');
+        if (!$refundPolicy['status']) {return back();}
+        $pageTitleBanner = $this->businessSettingRepo->whereJsonContains(params: ['type' => 'banner_refund_policy'], value: ['status' => '1']);
+        return view(VIEW_FILE_NAMES['refund_policy_page'], compact('refundPolicy', 'pageTitleBanner'));
     }
 
-    public function refund_policy()
+    public function getReturnPolicyView(): View|RedirectResponse
     {
-        $refund_policy = json_decode(BusinessSetting::where('type', 'refund-policy')->first()->value);
-        if(!$refund_policy->status){
-            return back();
-        }
-        $refund_policy = $refund_policy->content;
-        return view(VIEW_FILE_NAMES['refund_policy_page'], compact('refund_policy'));
+        $returnPolicy = getWebConfig(name: 'return-policy');
+        if (!$returnPolicy['status']) {return back();}
+        $pageTitleBanner = $this->businessSettingRepo->whereJsonContains(params: ['type' => 'banner_return_policy'], value: ['status' => '1']);
+        return view(VIEW_FILE_NAMES['return_policy_page'], compact('returnPolicy', 'pageTitleBanner'));
     }
 
-    public function return_policy()
+    public function getPrivacyPolicyView(): View
     {
-        $return_policy = json_decode(BusinessSetting::where('type', 'return-policy')->first()->value);
-        if(!$return_policy->status){
-            return back();
-        }
-        $return_policy = $return_policy->content;
-        return view(VIEW_FILE_NAMES['return_policy_page'], compact('return_policy'));
+        $privacyPolicy = getWebConfig(name: 'privacy_policy');
+        $pageTitleBanner = $this->businessSettingRepo->whereJsonContains(params: ['type' => 'banner_privacy_policy'], value: ['status' => '1']);
+        return view(VIEW_FILE_NAMES['privacy_policy_page'], compact('privacyPolicy', 'pageTitleBanner'));
     }
 
-    public function cancellation_policy()
+    public function getCancellationPolicyView(): View|RedirectResponse
     {
-        $cancellation_policy = json_decode(BusinessSetting::where('type', 'cancellation-policy')->first()->value);
-        if(!$cancellation_policy->status){
-            return back();
-        }
-        $cancellation_policy = $cancellation_policy->content;
-        return view(VIEW_FILE_NAMES['cancellation_policy_page'], compact('cancellation_policy'));
+        $cancellationPolicy = getWebConfig(name: 'cancellation-policy');
+        if (!$cancellationPolicy['status']) {return back();}
+        $pageTitleBanner = $this->businessSettingRepo->whereJsonContains(params: ['type' => 'banner_cancellation_policy'], value: ['status' => '1']);
+        return view(VIEW_FILE_NAMES['cancellation_policy_page'], compact('cancellationPolicy', 'pageTitleBanner'));
     }
+
+    public function getTermsAndConditionView(): View
+    {
+        $termsCondition = getWebConfig(name: 'terms_condition');
+        $pageTitleBanner = $this->businessSettingRepo->whereJsonContains(params: ['type' => 'banner_terms_conditions'], value: ['status' => '1']);
+        return view(VIEW_FILE_NAMES['terms_conditions_page'], compact('termsCondition', 'pageTitleBanner'));
+    }
+
 }

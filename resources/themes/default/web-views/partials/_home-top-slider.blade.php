@@ -1,53 +1,48 @@
-<div class="row rtl">
-    <div class="col-xl-3 d-none d-xl-block __top-slider-cate">
-        <div ></div>
-    </div>
-
-    <div class="col-xl-9 col-md-12 __top-slider-images" style="{{Session::get('direction') === "rtl" ? 'margin-top: 3px;padding-right:10px;' : 'margin-top: 3px; padding-left:10px;'}}">
-        <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
-            <ol class="carousel-indicators">
-                @foreach($main_banner as $key=>$banner)
-                    <li data-target="#carouselExampleIndicators" data-slide-to="{{$key}}"
-                        class="{{$key==0?'active':''}}">
-                    </li>
-                @endforeach
-            </ol>
-            <div class="carousel-inner">
-                @foreach($main_banner as $key=>$banner)
-                    <div class="carousel-item {{$key==0?'active':''}}">
-                        <a href="{{$banner['url']}}">
-                            <img class="d-block w-100 __slide-img"
-                                 onerror="this.src='{{asset('public/assets/front-end/img/image-place-holder.png')}}'"
-                                 src="{{asset('storage/app/public/banner')}}/{{$banner['photo']}}"
-                                 alt="">
+<div class="row no-gutters position-relative rtl">
+    @if ($categories->count() > 0 )
+        <div class="col-xl-3 position-static d-none d-xl-block __top-slider-cate">
+            <div class="category-menu-wrap position-static">
+                <ul class="category-menu mt-0">
+                    @foreach ($categories as $key=>$category)
+                        <li>
+                            <a href="{{route('products',['id'=> $category['id'],'data_from'=>'category','page'=>1])}}">{{$category->name}}</a>
+                            @if ($category->childes->count() > 0)
+                                <div class="mega_menu z-2">
+                                    @foreach ($category->childes as $sub_category)
+                                        <div class="mega_menu_inner">
+                                            <h6><a href="{{route('products',['id'=> $sub_category['id'],'data_from'=>'category','page'=>1])}}">{{$sub_category->name}}</a></h6>
+                                            @if ($sub_category->childes->count() >0)
+                                                @foreach ($sub_category->childes as $sub_sub_category)
+                                                    <div><a href="{{route('products',['id'=> $sub_sub_category['id'],'data_from'=>'category','page'=>1])}}">{{$sub_sub_category->name}}</a></div>
+                                                @endforeach
+                                            @endif
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        </li>
+                    @endforeach
+                    <li class="text-center">
+                        <a href="{{route('categories')}}" class="text-primary font-weight-bold justify-content-center text-capitalize">
+                            {{translate('view_all')}}
                         </a>
-                    </div>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    @endif
+
+    <div class="col-12 col-xl-9 __top-slider-images">
+        <div class="{{Session::get('direction') === "rtl" ? 'pr-xl-2' : 'pl-xl-2'}}">
+            <div class="owl-theme owl-carousel hero-slider">
+                @foreach($main_banner as $key=>$banner)
+                <a href="{{$banner['url']}}" class="d-block" target="_blank">
+                    <img class="w-100 __slide-img" alt=""
+                         src="{{ getValidImage(path: 'storage/app/public/banner/'.$banner['photo'], type: 'banner') }}">
+                </a>
                 @endforeach
             </div>
-            <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button"
-               data-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true" ></span>
-                <span class="sr-only">{{\App\CPU\translate('Previous')}}</span>
-            </a>
-            <a class="carousel-control-next" href="#carouselExampleIndicators" role="button"
-               data-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="sr-only">{{\App\CPU\translate('Next')}}</span>
-            </a>
         </div>
-
-
     </div>
-    <!-- Banner group-->
 </div>
 
-
-<script>
-    $(function () {
-        $('.list-group-item').on('click', function () {
-            $('.glyphicon', this)
-                .toggleClass('glyphicon-chevron-right')
-                .toggleClass('glyphicon-chevron-down');
-        });
-    });
-</script>
