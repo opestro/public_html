@@ -2,10 +2,9 @@
 
 namespace App\Http\Middleware;
 
-use App\Model\Seller;
+use App\Models\Seller;
 use Closure;
 use Illuminate\Http\Request;
-use function App\CPU\translate;
 
 class SellerApiAuthMiddleware
 {

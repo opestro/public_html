@@ -1,28 +1,25 @@
 @extends('layouts.back-end.app')
 
-@section('title', \App\CPU\translate('Review List'))
+@section('title', translate('review_List'))
 
 @section('content')
     <div class="content container-fluid">
-        <!-- Page Title -->
         <div class="mb-3">
             <h2 class="h1 mb-0 text-capitalize d-flex gap-2 align-items-center">
-                <img width="20" src="{{asset('/public/assets/back-end/img/customer_review.png')}}" alt="">
-                {{\App\CPU\translate('customer_reviews')}}
+                <img width="20" src="{{dynamicAsset(path: 'public/assets/back-end/img/customer_review.png')}}" alt="">
+                {{translate('customer_reviews')}}
             </h2>
         </div>
-        <!-- End Page Title -->
 
         <div class="card card-body">
             <div class="row border-bottom pb-3 align-items-center mb-20">
                 <div class="col-sm-4 col-md-6 col-lg-8 mb-2 mb-sm-0">
                     <h5 class="text-capitalize d-flex gap-2 align-items-center">
-                        {{ \App\CPU\translate('review_table') }}
+                        {{ translate('review_table') }}
                         <span class="badge badge-soft-dark radius-50 fz-12">{{ $reviews->total() }}</span>
                     </h5>
                 </div>
                 <div class="col-sm-8 col-md-6 col-lg-4">
-                    <!-- Search -->
                     <form action="{{ url()->current() }}" method="GET">
                         <div class="input-group input-group-merge input-group-custom">
                             <div class="input-group-prepend">
@@ -30,262 +27,221 @@
                                     <i class="tio-search"></i>
                                 </div>
                             </div>
-                            <input id="datatableSearch_" type="search" name="search" class="form-control"
-                                placeholder="{{ \App\CPU\translate('Search by Product or Customer') }}"
-                                aria-label="Search orders" value="{{ $search }}" required>
-                            <button type="submit" class="btn btn--primary">{{ \App\CPU\translate('search') }}</button>
+                            <input id="datatableSearch_" type="search" name="searchValue" class="form-control"
+                                   placeholder="{{ translate('search_by_Product_or_Customer') }}"
+                                   aria-label="Search orders" value="{{ request('searchValue') }}" required>
+                            <button type="submit" class="btn btn--primary">{{ translate('search') }}</button>
                         </div>
                     </form>
-                    <!-- End Search -->
                 </div>
             </div>
 
             <form action="{{ url()->current() }}" method="GET">
                 <div class="row gy-3 align-items-end">
                     <div class="col-md-4">
-                        <div>
-                            <label for="product" class="title-color d-flex">{{ \App\CPU\translate('choose') }}
-                                {{ \App\CPU\translate('product') }}</label>
-                            <select class="form-control" name="product_id">
-                                <option value="" selected>
-                                    --{{ \App\CPU\translate('select_product') }}--</option>
-                                @foreach ($products as $product)
-                                    <option value="{{ $product->id }}"
-                                        {{ $product_id == $product->id ? 'selected' : '' }}>
-                                        {{ Str::limit($product->name, 20) }}</option>
-                                @endforeach
-                            </select>
+                        <label for="name" class="title-color">{{ translate('products')}}</label>
+                        <div class="dropdown select-product-search w-100">
+                            <input type="text" class="product_id" name="product_id" value="{{request('product_id')}}"
+                                   hidden>
+                            <button class="form-control text-start dropdown-toggle text-truncate select-product-button"
+                                    data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                {{request('product_id') !=null ? $product['name']: translate('select_Product')}}
+                            </button>
+                            <div class="dropdown-menu w-100 px-2">
+                                <div class="search-form mb-3">
+                                    <button type="button" class="btn"><i class="tio-search"></i></button>
+                                    <input type="text" class="js-form-search form-control search-bar-input search-product" placeholder="{{translate('search_product').'...'}}">
+                                </div>
+                                <div class="d-flex flex-column gap-3 max-h-40vh overflow-y-auto overflow-x-hidden search-result-box">
+                                    @include('admin-views.partials._search-product',['products'=>$products])
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <div class="col-md-4">
-                        <div>
-                            <label for="customer" class="title-color d-flex">{{ \App\CPU\translate('choose') }}
-                                {{ \App\CPU\translate('customer') }}</label>
-                            <select class="form-control" name="customer_id">
-                                <option value="" selected>
-                                    --{{ \App\CPU\translate('select_customer') }}--</option>
-                                @foreach ($customers as $item)
-                                    <option value="{{ isset($item->id) ? $item->id : $customer_id }}"
-                                        {{ $customer_id != null && $customer_id == $item->id ? 'selected' : '' }}>
-                                        {{ Str::limit($item->f_name) }}
-                                        {{ Str::limit($item->l_name) }}</option>
-                                @endforeach
-
-                            </select>
-                        </div>
+                        <label class="title-color" for="customer">{{translate('customer')}}</label>
+                        <input type="hidden" id='customer_id' name="customer_id"
+                               value="{{request('customer_id') ? request('customer_id') : 'all'}}">
+                        <select data-placeholder="
+                                        @if($customer == 'all')
+                                            {{translate('all_customer')}}
+                                        @else
+                                            {{$customer['name'] ?? $customer['f_name'].' '.$customer['l_name'].' '.'('.$customer['phone'].')'}}
+                                        @endif"
+                                class="get-customer-list-by-ajax-request form-control form-ellipsis set-customer-value">
+                            <option value="all">{{translate('all_customer')}}</option>
+                        </select>
                     </div>
-
                     <div class="col-md-4">
                         <div>
-                            <label for="status" class="title-color d-flex">{{ \App\CPU\translate('choose') }}
-                                {{ \App\CPU\translate('status') }}</label>
+                            <label for="status" class="title-color d-flex">{{ translate('choose') }}
+                                {{ translate('status') }}</label>
                             <select class="form-control" name="status">
-                                <option value="" selected>
-                                    --{{ \App\CPU\translate('select_status') }}--</option>
-                                <option value="1" {{ $status != null && $status == 1 ? 'selected' : '' }}>
-                                    {{ \App\CPU\translate('active') }}</option>
-                                <option value="0" {{ $status != null && $status == 0 ? 'selected' : '' }}>
-                                    {{ \App\CPU\translate('inactive') }}</option>
+                                <option value="" selected> {{ '---'.translate('select_status').'---' }} </option>
+                                <option value="1" {{ !is_null($status) && $status == 1 ? 'selected' : '' }}>
+                                    {{ translate('active') }}</option>
+                                <option value="0" {{ !is_null($status) && $status == 0 ? 'selected' : '' }}>
+                                    {{ translate('inactive') }}</option>
                             </select>
                         </div>
                     </div>
                     <div class="col-md-4">
                         <div>
-                            <label for="from" class="title-color d-flex">{{ \App\CPU\translate('from') }}</label>
-                            <input type="date" name="from" id="from_date" value="{{ $from }}"
-                                class="form-control"
-                                title="{{ \App\CPU\translate('from') }} {{ \App\CPU\translate('date') }}">
+                            <label for="from" class="title-color d-flex">{{ translate('from') }}</label>
+                            <input type="date" name="from" id="start-date-time" value="{{ $from }}"
+                                   class="form-control"
+                                   title="{{ translate('from_date') }}">
                         </div>
                     </div>
 
                     <div class="col-md-4">
                         <div>
-                            <label for="to" class="title-color d-flex">{{ \App\CPU\translate('to') }}</label>
-                            <input type="date" name="to" id="to_date" value="{{ $to }}"
-                                class="form-control"
-                                title="{{ ucfirst(\App\CPU\translate('to')) }} {{ \App\CPU\translate('date') }}">
+                            <label for="to" class="title-color d-flex">{{ translate('to') }}</label>
+                            <input type="date" name="to" id="end-date-time" value="{{ $to }}"
+                                   class="form-control"
+                                   title="{{ ucfirst(translate('to_date')) }}">
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div>
                             <button id="filter" type="submit" class="btn btn--primary btn-block filter">
                                 <i class="tio-filter-list nav-icon"></i>
-                                {{ \App\CPU\translate('filter') }}
+                                {{ translate('filter') }}
                             </button>
                         </div>
                     </div>
                     <div class="col-md-2">
                         <div>
-                            <button type="button" class="btn btn-outline--primary text-nowrap btn-block" data-toggle="dropdown">
+                            <button type="button" class="btn btn-outline--primary text-nowrap btn-block"
+                                    data-toggle="dropdown">
                                 <i class="tio-download-to"></i>
-                                {{ \App\CPU\translate('export') }}
+                                {{ translate('export') }}
                                 <i class="tio-chevron-down"></i>
                             </button>
                             <ul class="dropdown-menu dropdown-menu-right">
-                                <li><a class="dropdown-item" href="{{ route('admin.reviews.export', ['product_id' => $product_id, 'customer_id' => $customer_id, 'status' => $status, 'from' => $from, 'to' => $to]) }}">{{ \App\CPU\translate('Excel') }}</a></li>
-                                <div class="dropdown-divider"></div>
+                                <li>
+                                    <a class="dropdown-item"
+                                       href="{{ route('admin.reviews.export', ['search'=>request('search'), 'product_id' => $product_id, 'customer_id' => $customer_id, 'status' => $status, 'from' => $from, 'to' => $to]) }}">
+                                        <img width="14" src="{{dynamicAsset(path: 'public/assets/back-end/img/excel.png')}}" alt="">
+                                        {{ translate('excel') }}
+                                    </a>
+                                </li>
                             </ul>
                         </div>
                     </div>
                 </div>
             </form>
         </div>
-
-        <!-- End Page Header -->
         <div class="card mt-20">
             <div class="table-responsive datatable-custom">
                 <table
-                    class="table table-hover table-borderless table-thead-bordered table-nowrap table-align-middle card-table w-100"
-                    style="text-align: {{ Session::get('direction') === 'rtl' ? 'right' : 'left' }}">
+                        class="table table-hover table-borderless table-thead-bordered table-nowrap table-align-middle card-table w-100"
+                        style="text-align: {{ Session::get('direction') === 'rtl' ? 'right' : 'left' }}">
                     <thead class="thead-light thead-50 text-capitalize">
-                        <tr>
-                            <th>{{ \App\CPU\translate('SL') }}</th>
-                            <th>{{ \App\CPU\translate('Product') }}</th>
-                            <th>{{ \App\CPU\translate('Customer') }}</th>
-                            <th>{{ \App\CPU\translate('Rating') }}</th>
-                            <th>{{ \App\CPU\translate('Review') }}</th>
-                            <th>{{ \App\CPU\translate('date') }}</th>
-                            <th class="text-center">{{ \App\CPU\translate('status') }}</th>
-                        </tr>
+                    <tr>
+                        <th>{{ translate('SL') }}</th>
+                        <th>{{ translate('product') }}</th>
+                        <th>{{ translate('customer') }}</th>
+                        <th>{{ translate('rating') }}</th>
+                        <th>{{ translate('review') }}</th>
+                        <th>{{ translate('date') }}</th>
+                        <th class="text-center">{{ translate('status') }}</th>
+                    </tr>
                     </thead>
                     <tbody>
-                        @foreach ($reviews as $key => $review)
-                            @if ($review->product)
-                                <tr>
-                                    <td>
-                                        {{ $reviews->firstItem()+$key }}
-                                    </td>
-                                    <td>
-                                        <a href="{{ route('admin.product.view', [$review['product_id']]) }}" class="title-color hover-c1">
-                                            {{ Str::limit($review->product['name'], 25) }}
-                                        </a>
-                                    </td>
-                                    <td>
-                                        @if ($review->customer)
-                                            <a href="{{ route('admin.customer.view', [$review->customer_id]) }}" class="title-color hover-c1">
-                                                {{ $review->customer->f_name . ' ' . $review->customer->l_name }}
-                                            </a>
-                                        @else
-                                            <label
-                                                class="badge badge-soft-danger">{{ \App\CPU\translate('customer_removed') }}</label>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <label class="badge badge-soft-info mb-0">
-                                            <span class="fz-12 d-flex align-items-center gap-1">{{ $review->rating }} <i class="tio-star"></i>
-                                            </span>
-                                        </label>
-                                    </td>
-                                    <td>
-                                        <div class="gap-1">
-                                            <div>{{ $review->comment ? Str::limit($review->comment, 35) : 'No Comment Found' }}</div>
-                                            <br>
-                                            @if($review->attachment)
-                                                <div class="d-flex flex-wrap">
-                                                    @foreach (json_decode($review->attachment) as $img)
-                                                        <a href="{{ asset('storage/app/public/review') }}/{{ $img }}"
-                                                           data-lightbox="mygallery">
-                                                            <img width="60" height="60" src="{{ asset('storage/app/public/review') }}/{{ $img }}"
-                                                                 alt="Image">
-                                                        </a>
-                                                    @endforeach
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </td>
-                                    <td>{{ date('d M Y', strtotime($review->created_at)) }}</td>
-                                    <td>
-                                        <label class="switcher mx-auto">
-                                            <input type="checkbox"
-                                                onclick="location.href='{{ route('admin.reviews.status', [$review['id'], $review->status ? 0 : 1]) }}'"
-                                                class="switcher_input" {{ $review->status ? 'checked' : '' }}>
-                                            <span class="switcher_control"></span>
-                                        </label>
-                                    </td>
+                    @foreach ($reviews as $key => $review)
+                        <tr>
+                            <td>
+                                {{ $reviews->firstItem()+$key }}
+                            </td>
+                            <td>
+                                @if(isset($review->product))
+                                    <a href="{{$review['product_id'] ? route('admin.products.view', ['addedBy'=>($review->product->added_by =='seller'?'vendor' : 'in-house'),'id'=>$review->product->id]) : 'javascript:'}}"
+                                       class="title-color hover-c1">
+                                        {{ Str::limit($review->product['name'], 25) }}
+                                    </a>
+                                @else
+                                    <span class="title-color">
+                                        {{ translate('product_not_found') }}
+                                    </span>
+                                @endif
 
-                                </tr>
-                            @endif
-                        @endforeach
+                            </td>
+                            <td>
+                                @if ($review->customer)
+                                    <a href="{{ route('admin.customer.view', [$review->customer_id]) }}"
+                                       class="title-color hover-c1">
+                                        {{ $review->customer->f_name . ' ' . $review->customer->l_name }}
+                                    </a>
+                                @else
+                                    <label class="badge badge-soft-danger">{{ translate('customer_removed') }}</label>
+                                @endif
+                            </td>
+                            <td>
+                                <label class="badge badge-soft-info mb-0">
+                                        <span class="fz-12 d-flex align-items-center gap-1">{{ $review->rating }}
+                                            <i class="tio-star"></i>
+                                        </span>
+                                </label>
+                            </td>
+                            <td>
+                                <div class="gap-1">
+                                    <div>{{ $review->comment ? Str::limit($review->comment, 35) : translate('no_comment_found') }}</div>
+                                    <br>
+                                    @if($review->attachment)
+                                        <div class="d-flex flex-wrap">
+                                            @foreach (json_decode($review->attachment) as $img)
+                                                <a href="{{ dynamicStorage(path: 'storage/app/public/review').'/'.$img }}"
+                                                   data-lightbox="mygallery">
+                                                    <img width="60" height="60"
+                                                         class="mx-1"
+                                                         src="{{ getValidImage(path: 'storage/app/public/review/'.$img, type: 'backend-basic') }}"
+                                                         alt="{{translate('image')}}">
+                                                </a>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                            </td>
+                            <td>{{ date('d M Y', strtotime($review->created_at)) }}</td>
+                            <td>
+                                <form action="{{ route('admin.reviews.status', [$review['id'], $review->status ? 0 : 1]) }}"
+                                      method="get" id="reviews-status{{$review['id']}}-form"
+                                      class="reviews_status_form">
+                                    <label class="switcher mx-auto">
+                                        <input type="checkbox" class="switcher_input toggle-switch-message"
+                                               id="reviews-status{{$review['id']}}"
+                                               {{ $review->status ? 'checked' : '' }}
+                                               data-modal-id = "toggle-status-modal"
+                                               data-toggle-id = "reviews-status{{$review['id']}}"
+                                               data-on-image = "customer-reviews-on.png"
+                                               data-off-image = "customer-reviews-off.png"
+                                               data-on-title = "{{translate('Want_to_Turn_ON_Customer_Reviews').'?'}}"
+                                               data-off-title = "{{translate('Want_to_Turn_OFF_Customer_Reviews').'?'}}"
+                                               data-on-message = "<p>{{translate('if_enabled_anyone_can_see_this_review_on_the_user_website_and_customer_app')}}</p>"
+                                               data-off-message = "<p>{{translate('if_disabled_this_review_will_be_hidden_from_the_user_website_and_customer_app')}}</p>">`)">
+                                        <span class="switcher_control"></span>
+                                    </label>
+                                </form>
+                            </td>
+
+                        </tr>
+                    @endforeach
                     </tbody>
                 </table>
             </div>
-
             <div class="table-responsive mt-4">
                 <div class="px-4 d-flex justify-content-lg-end">
-                    <!-- Pagination -->
                     {!! $reviews->links() !!}
                 </div>
             </div>
+            @if(count($reviews)==0)
+                @include('layouts.back-end._empty-state',['text'=>'no_review_found'],['image'=>'default'])
+            @endif
         </div>
     </div>
 @endsection
 
-@push('script_2')
-    <script>
-        $(document).on('ready', function() {
-            // INITIALIZATION OF DATATABLES
-            // =======================================================
-            // var datatable = $.HSCore.components.HSDatatables.init($('#columnSearchDatatable'));
-
-            $('#column1_search').on('keyup', function() {
-                datatable
-                    .columns(1)
-                    .search(this.value)
-                    .draw();
-            });
-
-            $('#column2_search').on('keyup', function() {
-                datatable
-                    .columns(2)
-                    .search(this.value)
-                    .draw();
-            });
-
-            $('#column3_search').on('change', function() {
-                datatable
-                    .columns(3)
-                    .search(this.value)
-                    .draw();
-            });
-
-            $('#column4_search').on('keyup', function() {
-                datatable
-                    .columns(4)
-                    .search(this.value)
-                    .draw();
-            });
-
-
-            // INITIALIZATION OF SELECT2
-            // =======================================================
-            $('.js-select2-custom').each(function() {
-                var select2 = $.HSCore.components.HSSelect2.init($(this));
-            });
-        });
-    </script>
-    <script>
-        $(document).on('change', '#from_date', function() {
-            from_date = $(this).val();
-            if (from_date) {
-                $("#to_date").prop('required', true);
-            }
-        });
-    </script>
-    <script>
-        $('#from_date , #to_date').change(function() {
-            let fr = $('#from_date').val();
-            let to = $('#to_date').val();
-            if (fr != '' && to != '') {
-                if (fr > to) {
-                    $('#from_date').val('');
-                    $('#to_date').val('');
-                    toastr.error('Invalid date range!', Error, {
-                        CloseButton: true,
-                        ProgressBar: true
-                    });
-                }
-            }
-
-        })
-    </script>
+@push('script')
+    <script src="{{dynamicAsset(path: 'public/assets/back-end/js/search-product.js')}}"></script>
 @endpush

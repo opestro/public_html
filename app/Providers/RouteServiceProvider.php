@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\RateLimiter;
+use App\Http\Requests\Request;
+use Illuminate\Cache\RateLimiting\Limit;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -42,19 +45,7 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function map()
     {
-        $this->mapApiRoutes();
-        $this->mapApiv2Routes();
-        $this->mapApiv3Routes();
-        $this->mapApiv4Routes();
-
-        $this->mapAdminRoutes();
-        $this->mapSellerRoutes();
-        $this->mapCustomerRoutes();
-        $this->mapWebRoutes();
-        $this->mapSharedRoutes();
-
-        //$this->mapInstallRoutes();
-        //$this->mapUpdateRoutes();
+        $this->mapUpdateRoutes();
     }
 
     /**
@@ -64,47 +55,6 @@ class RouteServiceProvider extends ServiceProvider
      *
      * @return void
      */
-    protected function mapAdminRoutes()
-    {
-        Route::middleware('web')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/admin.php'));
-    }
-
-    protected function mapSellerRoutes()
-    {
-        Route::middleware('web')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/seller.php'));
-    }
-
-    protected function mapCustomerRoutes()
-    {
-        Route::middleware('web')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/customer.php'));
-    }
-
-    protected function mapWebRoutes()
-    {
-        Route::middleware('web')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/web.php'));
-    }
-
-    protected function mapSharedRoutes()
-    {
-        Route::middleware('web')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/shared.php'));
-    }
-
-    protected function mapTestRoutes()
-    {
-        Route::middleware('web')
-            ->namespace($this->namespace)
-            ->group(base_path('routes/test.php'));
-    }
 
     protected function mapInstallRoutes()
     {
@@ -132,7 +82,7 @@ class RouteServiceProvider extends ServiceProvider
         Route::prefix('api')
             ->middleware('api')
             ->namespace($this->namespace)
-            ->group(base_path('routes/api/v1/api.php'));
+            ->group(base_path('routes/rest_api/v1/api.php'));
     }
 
     protected function mapApiv2Routes()
@@ -140,7 +90,7 @@ class RouteServiceProvider extends ServiceProvider
         Route::prefix('api')
             ->middleware('api')
             ->namespace($this->namespace)
-            ->group(base_path('routes/api/v2/api.php'));
+            ->group(base_path('routes/rest_api/v2/api.php'));
     }
 
     protected function mapApiv3Routes()
@@ -148,7 +98,7 @@ class RouteServiceProvider extends ServiceProvider
         Route::prefix('api')
             ->middleware('api')
             ->namespace($this->namespace)
-            ->group(base_path('routes/api/v3/seller.php'));
+            ->group(base_path('routes/rest_api/v3/seller.php'));
     }
 
     protected function mapApiv4Routes()
@@ -156,6 +106,43 @@ class RouteServiceProvider extends ServiceProvider
         Route::prefix('api')
             ->middleware('api')
             ->namespace($this->namespace)
-            ->group(base_path('routes/api/v4/api.php'));
+            ->group(base_path('routes/rest_api/v4/api.php'));
+    }
+
+    /**
+     * Define the "beta" routes for the application.
+     *
+     * These routes all receive session state, CSRF protection, etc.
+     *
+     * @return void
+     */
+
+    protected function mapBetaAdminRoutes(): void
+    {
+        Route::middleware('web')
+            ->namespace($this->namespace)
+            ->group(base_path('routes/admin/routes.php'));
+    }
+    protected function mapBetaVendorRoutes(): void
+    {
+        Route::middleware('web')
+            ->namespace($this->namespace)
+            ->group(base_path('routes/vendor/routes.php'));
+    }
+    protected function mapBetaWebRoutes(): void
+    {
+        Route::middleware('web')
+            ->namespace($this->namespace)
+            ->group(base_path('routes/web/routes.php'));
+    }
+
+    /**
+     * Configure the rate limiters for the application.
+     */
+    protected function configureRateLimiting(): void
+    {
+        RateLimiter::for('global', function (Request $request) {
+            return Limit::perMinute(3000);
+        });
     }
 }

@@ -3,15 +3,12 @@
 namespace App\Traits;
 
 
-use App\CPU\Helpers;
-use App\Model\DeliveryCountryCode;
-use App\Model\DeliverymanNotification;
-use App\Model\DeliverymanWallet;
-use App\Model\DeliveryZipCode;
-use App\Model\OrderExpectedDeliveryHistory;
-use App\Model\OrderStatusHistory;
-use App\Model\WithdrawRequest;
-use function App\CPU\translate;
+use App\Models\OrderStatusHistory;
+use App\Models\DeliveryCountryCode;
+use App\Models\DeliverymanNotification;
+use App\Models\DeliverymanWallet;
+use App\Models\DeliveryZipCode;
+use App\Models\OrderExpectedDeliveryHistory;
 
 trait CommonTrait
 {

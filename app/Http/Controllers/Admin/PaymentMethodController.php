@@ -2,384 +2,350 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Utils\Helpers;
+use App\Enums\GlobalConstant;
 use App\Http\Controllers\Controller;
-use App\Model\BusinessSetting;
-use App\Model\Currency;
+use App\Models\Setting;
+use App\Models\BusinessSetting;
+use App\Traits\Processor;
 use Brian2694\Toastr\Facades\Toastr;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use function App\CPU\translate;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class PaymentMethodController extends Controller
 {
+    use Processor;
+
     public function index()
     {
-        return view('admin-views.business-settings.payment-method.index');
+
+        $payment_published_status = config('get_payment_publish_status') ?? 0;
+        $payment_gateway_published_status = isset($payment_published_status[0]['is_published']) ? $payment_published_status[0]['is_published'] : 0;
+
+        $payment_gateways = Setting::whereIn('settings_type', ['payment_config'])->whereIn('key_name', GlobalConstant::DEFAULT_PAYMENT_GATEWAYS)->get();
+
+        $payment_gateways = $payment_gateways->sortBy(function ($item) {
+            return count($item['live_values']);
+        })->values()->all();
+
+        $routes = config('addon_admin_routes');
+        $desiredName = 'payment_setup';
+        $payment_url = '';
+
+        foreach ($routes as $routeArray) {
+            foreach ($routeArray as $route) {
+                if ($route['name'] === $desiredName) {
+                    $payment_url = $route['url'];
+                    break 2;
+                }
+            }
+        }
+
+        return view('admin-views.business-settings.payment-method.index',
+            compact('payment_gateways', 'payment_gateway_published_status','payment_url'));
     }
 
-    public function update(Request $request, $name)
+    public function update(Request $request)
     {
-        if ($name == 'cash_on_delivery') {
-            $payment = BusinessSetting::where('type', 'cash_on_delivery')->first();
-            if (isset($payment) == false) {
-                DB::table('business_settings')->insert([
-                    'type' => 'cash_on_delivery',
-                    'value' => json_encode([
-                        'status' => $request['status']
-                    ]),
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            } else {
-                DB::table('business_settings')->where(['type' => 'cash_on_delivery'])->update([
-                    'type' => 'cash_on_delivery',
-                    'value' => json_encode([
-                        'status' => $request['status']
-                    ]),
-                    'updated_at' => now()
-                ]);
-            }
-        }
-        if ($name == 'digital_payment') {
-            DB::table('business_settings')->updateOrInsert(['type' => 'digital_payment'], [
-                'value' => json_encode([
-                    'status' => $request['status']
-                ]),
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-        } elseif ($name == 'offline_payment') {
-            DB::table('business_settings')->updateOrInsert(['type' => 'offline_payment'], [
-                'value' => json_encode([
-                    'status' => $request['status']
-                ]),
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
-        } elseif ($name == 'ssl_commerz_payment') {
-            $payment = BusinessSetting::where('type', 'ssl_commerz_payment')->first();
-            if (isset($payment) == false) {
-                DB::table('business_settings')->insert([
-                    'type' => 'ssl_commerz_payment',
-                    'value' => json_encode([
-                        'status' => 1,
-                        'environment' => 'sandbox',
-                        'store_id' => '',
-                        'store_password' => '',
-                    ]),
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            } else {
-                if (Currency::where(['code' => 'BDT'])->first() == false) {
-                    Toastr::error('Please add BDT currency before enable this gateway.');
-                    return back();
-                }
-                if ($request['status'] == 1) {
-                    $request->validate([
-                        'store_id' => 'required',
-                        'store_password' => 'required'
-                    ]);
-                }
-                DB::table('business_settings')->where(['type' => 'ssl_commerz_payment'])->update([
-                    'type' => 'ssl_commerz_payment',
-                    'value' => json_encode([
-                        'status' => $request['status'],
-                        'environment' => $request['environment'],
-                        'store_id' => $request['store_id'],
-                        'store_password' => $request['store_password'],
-                    ]),
-                    'updated_at' => now()
-                ]);
-            }
-        } elseif ($name == 'paypal') {
-            $payment = BusinessSetting::where('type', 'paypal')->first();
-            if (isset($payment) == false) {
-                DB::table('business_settings')->insert([
-                    'type' => 'paypal',
-                    'value' => json_encode([
-                        'status' => 1,
-                        'environment' => 'sandbox',
-                        'paypal_client_id' => '',
-                        'paypal_secret' => '',
-                    ]),
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            } else {
-                if ($request['status'] == 1) {
-                    $request->validate([
-                        'paypal_client_id' => 'required',
-                        'paypal_secret' => 'required'
-                    ]);
-                }
-                DB::table('business_settings')->where(['type' => 'paypal'])->update([
-                    'type' => 'paypal',
-                    'value' => json_encode([
-                        'status' => $request['status'],
-                        'environment' => $request['environment'],
-                        'paypal_client_id' => $request['paypal_client_id'],
-                        'paypal_secret' => $request['paypal_secret'],
-                    ]),
-                    'updated_at' => now()
-                ]);
-            }
-        } elseif ($name == 'stripe') {
-            $payment = BusinessSetting::where('type', 'stripe')->first();
-            if (isset($payment) == false) {
-                DB::table('business_settings')->insert([
-                    'type' => 'stripe',
-                    'value' => json_encode([
-                        'status' => 1,
-                        'environment' => 'sandbox',
-                        'api_key' => '',
-                        'published_key' => ''
-                    ]),
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            } else {
-                if ($request['status'] == 1) {
-                    $request->validate([
-                        'api_key' => 'required',
-                        'published_key' => 'required'
-                    ]);
-                }
-                DB::table('business_settings')->where(['type' => 'stripe'])->update([
-                    'type' => 'stripe',
-                    'value' => json_encode([
-                        'status' => $request['status'],
-                        'environment' => $request['environment'],
-                        'api_key' => $request['api_key'],
-                        'published_key' => $request['published_key']
-                    ]),
-                    'updated_at' => now()
-                ]);
-            }
-        } elseif ($name == 'razor_pay') {
-            $payment = BusinessSetting::where('type', 'razor_pay')->first();
-            if (isset($payment) == false) {
-                DB::table('business_settings')->insert([
-                    'type' => 'razor_pay',
-                    'value' => json_encode([
-                        'status' => 1,
-                        'environment' => 'sandbox',
-                        'razor_key' => '',
-                        'razor_secret' => ''
-                    ]),
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            } else {
-                if (Currency::where(['code' => 'INR'])->first() == false) {
-                    Toastr::error('Please add INR currency before enable this gateway.');
-                    return back();
-                }
 
-                if ($request['status'] == 1) {
-                    $request->validate([
-                        'razor_key' => 'required',
-                        'razor_secret' => 'required'
-                    ]);
-                }
-                DB::table('business_settings')->where(['type' => 'razor_pay'])->update([
-                    'value' => json_encode([
-                        'status' => $request['status'],
-                        'environment' => $request['environment'],
-                        'razor_key' => $request['razor_key'],
-                        'razor_secret' => $request['razor_secret']
-                    ]),
-                    'updated_at' => now()
-                ]);
-            }
-        } elseif ($name == 'senang_pay') {
-            $payment = BusinessSetting::where('type', 'senang_pay')->first();
-            if (isset($payment) == false) {
-                DB::table('business_settings')->insert([
-                    'type' => 'senang_pay',
-                    'value' => json_encode([
-                        'status' => 1,
-                        'environment' => 'sandbox',
-                        'secret_key' => '',
-                        'merchant_id' => '',
-                    ]),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            } else {
-                if (Currency::where(['code' => 'MYR'])->first() == false) {
-                    Toastr::error('Please add MYR currency before enable this gateway.');
-                    return back();
-                }
+        BusinessSetting::updateOrInsert(['type' => 'cash_on_delivery'], [
+            'value' => json_encode(['status' => $request['cash_on_delivery'] ?? 0]),
+            'updated_at' => now()
+        ]);
 
-                if ($request['status'] == 1) {
-                    $request->validate([
-                        'secret_key' => 'required',
-                        'merchant_id' => 'required'
-                    ]);
-                }
+        BusinessSetting::updateOrInsert(['type' => 'digital_payment'], [
+            'value' => json_encode(['status' => $request['digital_payment'] ?? 0]),
+            'updated_at' => now()
+        ]);
 
-                DB::table('business_settings')->where(['type' => 'senang_pay'])->update([
-                    'type' => 'senang_pay',
-                    'value' => json_encode([
-                        'status' => $request['status'],
-                        'environment' => $request['environment'],
-                        'secret_key' => $request['secret_key'],
-                        'merchant_id' => $request['merchant_id'],
-                    ]),
-                    'updated_at' => now(),
-                ]);
-            }
-        } elseif ($name == 'paystack') {
-            $payment = BusinessSetting::where('type', 'paystack')->first();
-            if (isset($payment) == false) {
-                DB::table('business_settings')->insert([
-                    'type' => 'paystack',
-                    'value' => json_encode([
-                        'status' => 1,
-                        'environment' => 'sandbox',
-                        'publicKey' => '',
-                        'secretKey' => '',
-                        'paymentUrl' => '',
-                        'merchantEmail' => '',
-                    ]),
-                    'created_at' => now(),
-                    'updated_at' => now()
-                ]);
-            } else {
-                if (Currency::where(['code' => 'ZAR'])->first() == false) {
-                    Toastr::error('Please add ZAR currency before enable this gateway.');
-                    return back();
-                }
+        BusinessSetting::updateOrInsert(['type' => 'offline_payment'], [
+            'value' => json_encode(['status' => $request['offline_payment'] ?? 0]),
+            'updated_at' => now()
+        ]);
 
-                if ($request['status'] == 1) {
-                    $request->validate([
-                        'publicKey' => 'required',
-                        'secretKey' => 'required',
-                        'paymentUrl' => 'required',
-                        'merchantEmail' => 'required'
-                    ]);
-                }
-
-                DB::table('business_settings')->where(['type' => 'paystack'])->update([
-                    'type' => 'paystack',
-                    'value' => json_encode([
-                        'status' => $request['status'],
-                        'environment' => $request['environment'],
-                        'publicKey' => $request['publicKey'],
-                        'secretKey' => $request['secretKey'],
-                        'paymentUrl' => $request['paymentUrl'],
-                        'merchantEmail' => $request['merchantEmail'],
-                    ]),
-                    'updated_at' => now()
-                ]);
-            }
-        } elseif ($name == 'paymob_accept') {
-            DB::table('business_settings')->updateOrInsert(['type' => 'paymob_accept'], [
-                'value' => json_encode([
-                    'status' => $request['status'],
-                    'environment' => $request['environment'],
-                    'api_key' => $request['api_key'],
-                    'iframe_id' => $request['iframe_id'],
-                    'integration_id' => $request['integration_id'],
-                    'hmac' => $request['hmac'],
-                ]),
-                'updated_at' => now()
-            ]);
-        } elseif ($name == 'bkash') {
-            DB::table('business_settings')->updateOrInsert(['type' => 'bkash'], [
-                'value' => json_encode([
-                    'status' => $request['status'],
-                    'environment' => $request['environment'],
-                    'api_key' => $request['api_key'],
-                    'api_secret' => $request['api_secret'],
-                    'username' => $request['username'],
-                    'password' => $request['password'],
-                ]),
-                'updated_at' => now()
-            ]);
-        } elseif ($name == 'paytabs') {
-            DB::table('business_settings')->updateOrInsert(['type' => 'paytabs'], [
-                'value' => json_encode([
-                    'status' => $request['status'],
-                    'environment' => $request['environment'],
-                    'profile_id' => $request['profile_id'],
-                    'server_key' => $request['server_key'],
-                    'base_url' => $request['base_url']
-                ]),
-                'updated_at' => now()
-            ]);
-        } elseif ($name == 'fawry_pay') {
-            DB::table('business_settings')->updateOrInsert(['type' => 'fawry_pay'], [
-                'value' => json_encode([
-                    'status' => $request['status'],
-                    'environment' => $request['environment'],
-                    'merchant_code' => $request['merchant_code'],
-                    'security_key' => $request['security_key']
-                ]),
-                'updated_at' => now()
-            ]);
-        } elseif ($name == 'mercadopago') {
-            BusinessSetting::updateOrInsert(['type' => 'mercadopago'],
-                ['value' => json_encode([
-                    'status' => $request['status'],
-                    'environment' => $request['environment'],
-                    'public_key' => $request['public_key'],
-                    'access_token' => $request['access_token'],
-                ]),
-                    'updated_at' => now()]
-            );
-        } elseif ($name == 'flutterwave') {
-            $payment = BusinessSetting::where('type', 'flutterwave')->first();
-            if (isset($payment) == false) {
-                DB::table('business_settings')->insert([
-                    'type' => 'flutterwave',
-                    'value' => json_encode([
-                        'status' => 1,
-                        'public_key' => '',
-                        'secret_key' => '',
-                        'hash' => '',
-                    ]),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
-            } else {
-                DB::table('business_settings')->where(['type' => 'flutterwave'])->update([
-                    'type' => 'flutterwave',
-                    'value' => json_encode([
-                        'status' => $request['status'],
-                        'environment' => $request['environment'],
-                        'public_key' => $request['public_key'],
-                        'secret_key' => $request['secret_key'],
-                        'hash' => $request['hash'],
-                    ]),
-                    'updated_at' => now(),
-                ]);
-            }
-        } elseif ($name == 'liqpay') {
-            DB::table('business_settings')->updateOrInsert(['type' => 'liqpay'], [
-                'value' => json_encode([
-                    'status' => $request['status'],
-                    'environment' => $request['environment'],
-                    'public_key' => $request['public_key'],
-                    'private_key' => $request['private_key']
-                ]),
-                'updated_at' => now()
-            ]);
-        } elseif ($name == 'paytm') {
-            DB::table('business_settings')->updateOrInsert(['type' => 'paytm'], [
-                'value' => json_encode([
-                    'status' => $request['status'],
-                    'environment' => $request['environment'],
-                    'paytm_merchant_key' => $request['paytm_merchant_key'],
-                    'paytm_merchant_mid' => $request['paytm_merchant_mid'],
-                    'paytm_merchant_website' => $request['paytm_merchant_website'],
-                    'paytm_refund_url' => $request['paytm_refund_url'],
-                ]),
-                'updated_at' => now()
-            ]);
-        }
         Toastr::success(translate('successfully_updated'));
+        return back();
+    }
+
+    /**
+     * Display a listing of the resource.
+     * @param Request $request
+     * @return RedirectResponse
+     * @throws ValidationException
+     */
+    public function payment_config_set(Request $request)
+    {
+        collect(['status'])->each(fn($item, $key) => $request[$item] = $request->has($item) ? (int)$request[$item] : 0);
+        $validation = [
+            'gateway' => 'required|in:ssl_commerz,sixcash,worldpay,payfast,swish,esewa,maxicash,hubtel,viva_wallet,tap,thawani,moncash,pvit,ccavenue,foloosi,iyzi_pay,xendit,fatoorah,hyper_pay,amazon_pay,paypal,stripe,razor_pay,senang_pay,paytabs,paystack,paymob_accept,paytm,flutterwave,liqpay,bkash,mercadopago,cash_after_service,digital_payment,momo',
+            'mode' => 'required|in:live,test'
+        ];
+
+        $additional_data = [];
+
+        if ($request['gateway'] == 'ssl_commerz') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'store_id' => 'required',
+                'store_password' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'paypal') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'client_id' => 'required',
+                'client_secret' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'stripe') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'api_key' => 'required',
+                'published_key' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'razor_pay') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'api_key' => 'required',
+                'api_secret' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'senang_pay') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'callback_url' => 'required',
+                'secret_key' => 'required',
+                'merchant_id' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'paytabs') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'profile_id' => 'required',
+                'server_key' => 'required',
+                'base_url' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'paystack') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'public_key' => 'required',
+                'secret_key' => 'required',
+                'merchant_email' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'paymob_accept') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'callback_url' => 'required',
+                'api_key' => 'required',
+                'iframe_id' => 'required',
+                'integration_id' => 'required',
+                'hmac' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'mercadopago') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'access_token' => 'required',
+                'public_key' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'liqpay') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'private_key' => 'required',
+                'public_key' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'flutterwave') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'secret_key' => 'required',
+                'public_key' => 'required',
+                'hash' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'paytm') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'merchant_key' => 'required',
+                'merchant_id' => 'required',
+                'merchant_website_link' => 'required'
+            ];
+        } elseif ($request['gateway'] == 'bkash') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'app_key' => 'required',
+                'app_secret' => 'required',
+                'username' => 'required',
+                'password' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'cash_after_service') {
+            $additional_data = [
+                'status' => 'required|in:1,0'
+            ];
+        } elseif ($request['gateway'] == 'digital_payment') {
+            $additional_data = [
+                'status' => 'required|in:1,0'
+            ];
+        } elseif ($request['gateway'] == 'momo') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'api_key' => 'required',
+                'api_user' => 'required',
+                'subscription_key' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'hyper_pay') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'entity_id' => 'required',
+                'access_code' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'amazon_pay') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'pass_phrase' => 'required',
+                'access_code' => 'required',
+                'merchant_identifier' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'sixcash') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'public_key' => 'required',
+                'secret_key' => 'required',
+                'merchant_number' => 'required',
+                'base_url' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'worldpay') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'OrgUnitId' => 'required',
+                'jwt_issuer' => 'required',
+                'mac' => 'required',
+                'merchantCode' => 'required',
+                'xml_password' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'payfast') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'merchant_id' => 'required',
+                'secured_key' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'swish') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'number' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'esewa') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'merchantCode' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'maxicash') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'merchantId' => 'required',
+                'merchantPassword' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'hubtel') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'account_number' => 'required',
+                'api_id' => 'required',
+                'api_key' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'viva_wallet') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'client_id' => 'required',
+                'client_secret' => 'required',
+                'source_code' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'tap') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'secret_key' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'thawani') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'public_key' => 'required',
+                'private_key' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'moncash') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'client_id' => 'required',
+                'secret_key' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'pvit') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'mc_tel_merchant' => 'required',
+                'access_token' => 'required',
+                'mc_merchant_code' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'ccavenue') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'merchant_id' => 'required',
+                'working_key' => 'required',
+                'access_code' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'foloosi') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'merchant_key' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'iyzi_pay') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'api_key' => 'required',
+                'secret_key' => 'required',
+                'base_url' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'xendit') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'api_key' => 'required',
+            ];
+        } elseif ($request['gateway'] == 'fatoorah') {
+            $additional_data = [
+                'status' => 'required|in:1,0',
+                'api_key' => 'required',
+            ];
+        }
+
+        $request->validate(array_merge($validation, $additional_data));
+
+        $settings = Setting::where('key_name', $request['gateway'])->where('settings_type', 'payment_config')->first();
+
+        $additional_data_image = $settings['additional_data'] != null ? json_decode($settings['additional_data']) : null;
+
+        if( !$additional_data_image || !isset($additional_data_image->gateway_image) || (isset($additional_data_image->gateway_image) && $additional_data_image->gateway_image == '') || (isset($additional_data_image->gateway_image) && !file_exists(base_path("storage/app/public/payment_modules/gateway_image/".$additional_data_image->gateway_image)))){
+            $request->validate([
+                'gateway_image' => 'required',
+            ]);
+        }
+        $request->validate(['gateway_title' => 'required']);
+
+        if ($request->has('gateway_image')) {
+            $gateway_image = $this->file_uploader('payment_modules/gateway_image/', 'png', $request['gateway_image'], $additional_data_image != null ? $additional_data_image->gateway_image : '');
+        } else {
+            $gateway_image = $additional_data_image != null ? $additional_data_image->gateway_image : '';
+        }
+
+        $payment_additional_data = [
+            'gateway_title' => $request['gateway_title'],
+            'gateway_image' => $gateway_image,
+        ];
+
+        $validator = Validator::make($request->all(), array_merge($validation, $additional_data));
+
+        Setting::updateOrCreate(['key_name' => $request['gateway'], 'settings_type' => 'payment_config'], [
+            'key_name' => $request['gateway'],
+            'live_values' => $validator->validate(),
+            'test_values' => $validator->validate(),
+            'settings_type' => 'payment_config',
+            'mode' => $request['mode'],
+            'is_active' => $request['status'] ?? 0,
+            'additional_data' => json_encode($payment_additional_data),
+        ]);
+
+        Toastr::success(GATEWAYS_DEFAULT_UPDATE_200['message']);
         return back();
     }
 }

@@ -3,10 +3,10 @@
     <tr>
         <th scope="col">#</th>
         <th scope="col">
-            {{\App\CPU\translate('Product Name')}} <label class="badge badge-success ml-3 cursor-pointer">{{\App\CPU\translate('Asc/Dsc')}}</label>
+            {{translate('product_Name')}} <label class="badge badge-success ml-3 cursor-pointer">{{translate('Asc/Dsc')}}</label>
         </th>
         <th scope="col">
-            {{\App\CPU\translate('Total Stock')}} <label class="badge badge-success ml-3 cursor-pointer">{{\App\CPU\translate('Asc/Dsc')}}</label>
+            {{translate('total_Stock')}} <label class="badge badge-success ml-3 cursor-pointer">{{translate('Asc/Dsc')}}</label>
         </th>
     </tr>
     </thead>
@@ -22,6 +22,7 @@
 </table>
 
 <script type="text/javascript">
+    "use strict";
     $(document).ready(function () {
         $('input').addClass('form-control');
     });

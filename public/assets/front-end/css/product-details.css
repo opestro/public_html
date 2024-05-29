@@ -1,3 +1,11 @@
+.btn-number:hover {
+    color: var(--web-secondary);
+}
+
+thead {
+    background: var(--web-primary) !important;
+}
+
 .feature_header {
     display: flex;
     justify-content: center;
@@ -32,13 +40,13 @@
 
 .cz-preview-item > img {
     width: 100%;
-    height: 600px;
+    max-height: 600px;
 }
 
 .details {
-    
+
     padding: 16px;
-    
+
 }
 
 img,
@@ -181,6 +189,8 @@ figure {
     font-size: 25px;
 }
 
+
+
 .product-description-label {
     /* font-family: "Roboto", sans-serif; */
     /* font-weight: 700; */
@@ -213,12 +223,6 @@ figure {
 .specification .h6 {
     font-weight: 700 !important;
     font-size: 22px !important;
-}
-
-.text-muted {
-    font-weight: 600;
-    font-size: 20px;
-    color: #6a6a6a !important;
 }
 
 .list-unstyled li {
@@ -354,11 +358,11 @@ figure {
     }
 
     .view_border {
-        margin: 16px 0px;
+        margin: 16px 0;
         border-top: 2px solid #e2f0ff !important;
     }
     @media (max-width: 375px) {
-        .for-dicount-div {
+        .for-discount-div {
             margin-top: -5% !important;
             margin-right: -5% !important;
             margin-bottom: 6%;

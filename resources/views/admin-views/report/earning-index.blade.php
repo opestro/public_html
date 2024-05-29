@@ -1,51 +1,45 @@
 @extends('layouts.back-end.app')
 
-@section('title', \App\CPU\translate('Earning Report'))
-
-@push('css_or_js')
-
-@endpush
+@section('title', translate('Earning_Report'))
 
 @section('content')
     <div class="content container-fluid">
-        <!-- Page Title -->
         <div class="mb-3">
             <h2 class="h1 mb-0 text-capitalize d-flex align-items-center gap-2">
-                <img width="20" src="{{asset('/public/assets/back-end/img/earning_report.png')}}" alt="">
-                {{\App\CPU\translate('Earning_Report')}}
+                <img width="20" src="{{dynamicAsset(path: 'public/assets/back-end/img/earning_report.png')}}" alt="">
+                {{translate('Earning_Report')}}
             </h2>
         </div>
-        <!-- End Page Title -->
-
         <div class="card mb-3">
             <div class="card-body">
                 <div class="media align-items-center">
                     <!-- Avatar -->
                     <div class="avatar avatar-xl avatar-4by3">
-                        <img class="avatar-img" src="{{asset('public/assets/back-end')}}/svg/illustrations/earnings.png"
+                        <img class="avatar-img" src="{{dynamicAsset(path: 'public/assets/back-end/svg/illustrations/earnings.png')}}"
                              alt="Image Description">
                     </div>
-                    <!-- End Avatar -->
 
                     <div class="media-body">
                         <div class="row align-items-center">
-                            <div class="d-block col-sm mb-1 mb-sm-0 {{Session::get('direction') === "rtl" ? 'mr-2' : 'ml-2'}}" style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};">
+                            <div class="d-block col-sm mb-1 mb-sm-0 text-start {{Session::get('direction') === "rtl" ? 'mr-2' : 'ml-2'}}">
                                 <div>
-                                    <h1 class="page-header-title">{{\App\CPU\translate('Earning')}} {{\App\CPU\translate('Report')}}  {{\App\CPU\translate('Overview')}} </h1>
+                                    <h1 class="page-header-title">{{translate('Earning_Report')}}  {{translate('overview')}} </h1>
                                 </div>
 
                                 <div class="row align-items-center">
                                     <div class="flex-between col-auto">
-                                        <h5 class="text-muted {{Session::get('direction') === "rtl" ? 'ml-1' : 'mr-1'}}">{{\App\CPU\translate('Admin')}} : </h5>
+                                        <h5 class="text-muted {{Session::get('direction') === "rtl" ? 'ml-1' : 'mr-1'}}">{{translate('admin')}}
+                                            : </h5>
                                         <h5 class="text-muted">{{auth('admin')->user()->name}}</h5>
                                     </div>
 
                                     <div class="col-auto">
                                         <div class="row align-items-center g-0">
-                                            <h5 class="text-muted col-auto {{Session::get('direction') === "rtl" ? 'pl-2' : 'pr-2'}}">{{\App\CPU\translate('Date')}}</h5>
+                                            <h5 class="text-muted col-auto {{Session::get('direction') === "rtl" ? 'pl-2' : 'pr-2'}}">{{translate('date')}}</h5>
 
                                             <!-- Flatpickr -->
-                                            <h5 class="text-muted">( {{session('from_date')}} - {{session('to_date')}} )</h5>
+                                            <h5 class="text-muted">( {{session('from_date')}} - {{session('to_date')}}
+                                                )</h5>
                                             <!-- End Flatpickr -->
                                         </div>
                                     </div>
@@ -54,7 +48,8 @@
 
                             <div class="col-sm-auto">
                                 <div class="d-flex">
-                                    <a class="btn btn-icon btn--primary rounded-circle" href="{{route('admin.dashboard')}}">
+                                    <a class="btn btn-icon btn--primary rounded-circle"
+                                       href="{{route('admin.dashboard.index')}}">
                                         <i class="tio-home-outlined"></i>
                                     </a>
                                 </div>
@@ -73,23 +68,26 @@
                             @csrf
                             <div class="row">
                                 <div class="col-12 mb-2">
-                                    <label class="title-color d-flex">{{\App\CPU\translate('show_data_by_date_range')}}</label>
+                                    <label class="title-color d-flex">{{translate('show_data_by_date_range')}}</label>
                                 </div>
                                 <div class="col-sm-6 col-lg-4">
                                     <div class="mb-3">
-                                        <input type="date" name="from" value="{{date('Y-m-d',strtotime($from))}}" id="from_date"
+                                        <input type="date" name="from" value="{{date('Y-m-d',strtotime($from))}}"
+                                               id="start-date-time"
                                                class="form-control" required>
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-lg-4">
                                     <div class="mb-3">
-                                        <input type="date" value="{{date('Y-m-d',strtotime($to))}}" name="to" id="to_date"
+                                        <input type="date" value="{{date('Y-m-d',strtotime($to))}}" name="to"
+                                               id="end-date-time"
                                                class="form-control" required>
                                     </div>
                                 </div>
                                 <div class="col-lg-4">
                                     <div class="mb-3">
-                                        <button type="submit" class="btn btn--primary btn-block">{{\App\CPU\translate('Show')}}</button>
+                                        <button type="submit"
+                                                class="btn btn--primary btn-block">{{translate('show')}}</button>
                                     </div>
                                 </div>
                             </div>
@@ -99,17 +97,17 @@
             </div>
 
             @php
-                $total_tax=\App\Model\OrderTransaction::where(['status'=>'disburse'])
+                $total_tax=\App\Models\OrderTransaction::where(['status'=>'disburse'])
                 ->whereBetween('created_at', [$from, $to])
                 ->sum('tax');
             @endphp
             @php
-                $total_earning =\App\Model\OrderTransaction::where(['status'=>'disburse'])
+                $total_earning =\App\Models\OrderTransaction::where(['status'=>'disburse'])
                ->whereBetween('created_at', [$from, $to])
                ->sum('order_amount');
             @endphp
             @php
-                $total_commission =\App\Model\OrderTransaction::where(['status'=>'disburse'])
+                $total_commission =\App\Models\OrderTransaction::where(['status'=>'disburse'])
                ->whereBetween('created_at', [$from, $to])
                ->sum('admin_commission');
             @endphp
@@ -118,7 +116,6 @@
             @endphp
 
             <div class="col-sm-6 mb-3 col-lg-4">
-                <!-- Card -->
                 <div class="card card-sm">
                     <div class="card-body">
                         <div class="row">
@@ -128,18 +125,15 @@
                                     <i class="tio-dollar-outlined nav-icon {{Session::get('direction') === "rtl" ? 'text-right' : 'text-left'}}"></i>
 
                                     <div class="media-body {{Session::get('direction') === "rtl" ? 'text-right' : 'text-left'}}">
-                                        <h4 class="mb-1">{{\App\CPU\translate('Total')}} {{\App\CPU\translate('earning')}} </h4>
+                                        <h4 class="mb-1">{{translate('total_earning')}} </h4>
                                         <span class="font-size-sm text-success">
-                                          <i class="tio-trending-up"></i> {{\App\CPU\BackEndHelper::set_symbol(\App\CPU\BackEndHelper::usd_to_currency($total_earning))}}
+                                          <i class="tio-trending-up"></i> {{\App\Utils\BackEndHelper::set_symbol(\App\Utils\BackEndHelper::usd_to_currency($total_earning))}}
                                         </span>
                                     </div>
-
                                 </div>
-                                <!-- End Media -->
                             </div>
 
                             <div class="col-auto">
-                                <!-- Circle -->
                                 <div class="js-circle"
                                      data-hs-circles-options='{
                                        "value": {{$total_earning==0?0:round((($total_earning)/$total)*100)}},
@@ -155,37 +149,30 @@
                                        "textClass": "circle-custom-text",
                                        "textColor": "green"
                                      }'></div>
-                                <!-- End Circle -->
                             </div>
                         </div>
-                        <!-- End Row -->
                     </div>
                 </div>
-                <!-- End Card -->
             </div>
 
             <div class="col-sm-6 mb-3 col-lg-4">
-                <!-- Card -->
                 <div class="card card-sm">
                     <div class="card-body">
                         <div class="row">
                             <div class="col">
-                                <!-- Media -->
                                 <div class="media">
                                     <i class="tio-money nav-icon {{Session::get('direction') === "rtl" ? 'text-right' : 'text-left'}}"></i>
 
                                     <div class="media-body {{Session::get('direction') === "rtl" ? 'text-right' : 'text-left'}}">
-                                        <h4 class="mb-1">{{\App\CPU\translate('Total')}} {{\App\CPU\translate('Tax')}} </h4>
+                                        <h4 class="mb-1">{{translate('total_Tax')}} </h4>
                                         <span class="font-size-sm text-warning">
-                                          <i class="tio-trending-up"></i>  {{\App\CPU\BackEndHelper::set_symbol(\App\CPU\BackEndHelper::usd_to_currency($total_tax))}}
+                                          <i class="tio-trending-up"></i>  {{\App\Utils\BackEndHelper::set_symbol(\App\Utils\BackEndHelper::usd_to_currency($total_tax))}}
                                         </span>
                                     </div>
                                 </div>
-                                <!-- End Media -->
                             </div>
 
                             <div class="col-auto">
-                                <!-- Circle -->
                                 <div class="js-circle"
                                      data-hs-circles-options='{
                            "value": {{$total_tax==0?0:round(((abs($total_tax))/$total)*100)}},
@@ -201,36 +188,29 @@
                            "textClass": "circle-custom-text",
                            "textColor": "#ec9a3c"
                          }'></div>
-                                <!-- End Circle -->
                             </div>
                         </div>
-                        <!-- End Row -->
                     </div>
                 </div>
-                <!-- End Card -->
             </div>
             <div class="col-sm-6 mb-3 col-lg-4">
-                <!-- Card -->
                 <div class="card card-sm">
                     <div class="card-body">
                         <div class="row">
                             <div class="col">
-                                <!-- Media -->
                                 <div class="media">
                                     <i class="tio-money nav-icon {{Session::get('direction') === "rtl" ? 'text-right' : 'text-left'}}"></i>
 
                                     <div class="media-body {{Session::get('direction') === "rtl" ? 'text-right' : 'text-left'}}">
-                                        <h4 class="mb-1">{{\App\CPU\translate('Total')}} {{\App\CPU\translate('commission')}} </h4>
+                                        <h4 class="mb-1">{{translate('total_commission')}} </h4>
                                         <span class="font-size-sm text-primary">
-                                          <i class="tio-trending-up"></i>  {{\App\CPU\BackEndHelper::set_symbol(\App\CPU\BackEndHelper::usd_to_currency($total_commission))}}
+                                          <i class="tio-trending-up"></i>  {{\App\Utils\BackEndHelper::set_symbol(\App\Utils\BackEndHelper::usd_to_currency($total_commission))}}
                                         </span>
                                     </div>
                                 </div>
-                                <!-- End Media -->
                             </div>
 
                             <div class="col-auto">
-                                <!-- Circle -->
                                 <div class="js-circle"
                                      data-hs-circles-options='{
                            "value": {{$total_commission==0?0:round(((abs($total_commission))/$total)*100)}},
@@ -246,43 +226,36 @@
                            "textClass": "circle-custom-text",
                            "textColor": "#355db5"
                          }'></div>
-                                <!-- End Circle -->
                             </div>
                         </div>
-                        <!-- End Row -->
                     </div>
                 </div>
-                <!-- End Card -->
             </div>
         </div>
-        <!-- End Stats -->
-
-        <!-- Card -->
         <div class="card mb-3 mb-lg-5 border-top border-left border-right border-bottom">
-            <!-- Header -->
             <div class="card-header flex-wrap">
                 @php
-                    $total_sold=\App\Model\OrderTransaction::where(['status'=>'disburse'])->whereBetween('created_at', [date('y-01-01'), date('y-12-31')])->sum('order_amount');
-                    $t=\App\Model\OrderTransaction::where(['status'=>'disburse'])->whereBetween('created_at', [date('y-01-01'), date('y-12-31')])->sum('tax');
-                    $c=\App\Model\OrderTransaction::where(['status'=>'disburse'])->whereBetween('created_at', [date('y-01-01'), date('y-12-31')])->sum('admin_commission');
+                    $total_sold=\App\Models\OrderTransaction::where(['status'=>'disburse'])->whereBetween('created_at', [date('y-01-01'), date('y-12-31')])->sum('order_amount');
+                    $t=\App\Models\OrderTransaction::where(['status'=>'disburse'])->whereBetween('created_at', [date('y-01-01'), date('y-12-31')])->sum('tax');
+                    $c=\App\Models\OrderTransaction::where(['status'=>'disburse'])->whereBetween('created_at', [date('y-01-01'), date('y-12-31')])->sum('admin_commission');
                     $t_c_t = $total_sold +$t +$c;
                 @endphp
                 <div class="flex-start">
-                    <h6 class="card-subtitle mt-1">{{\App\CPU\translate('total_sale_of')}} {{date('Y')}} :</h6>
-                    <h6><span class="h3 {{Session::get('direction') === "rtl" ? 'mr-sm-2' : 'ml-sm-2'}}"> {{\App\CPU\BackEndHelper::usd_to_currency($total_sold)." "}}</span></h6>
-                    <h6><span class="h3 {{Session::get('direction') === "rtl" ? 'mr-sm-2' : 'ml-sm-2'}}"> {{\App\CPU\BackEndHelper::currency_symbol()}}</span></h6>
+                    <h6 class="card-subtitle mt-1">{{translate('total_sale_of')}} {{date('Y')}} :</h6>
+                    <h6>
+                        <span class="h3 {{Session::get('direction') === "rtl" ? 'mr-sm-2' : 'ml-sm-2'}}"> {{\App\Utils\BackEndHelper::usd_to_currency($total_sold)." "}}</span>
+                    </h6>
+                    <h6>
+                        <span class="h3 {{Session::get('direction') === "rtl" ? 'mr-sm-2' : 'ml-sm-2'}}"> {{\App\Utils\BackEndHelper::currency_symbol()}}</span>
+                    </h6>
                 </div>
-
-                <!-- Unfold -->
                 <div class="hs-unfold">
                     <a class="js-hs-unfold-invoker btn btn-white"
                        href="{{route('admin.orders.list',['all'])}}">
-                        <i class="tio-shopping-cart-outlined {{Session::get('direction') === "rtl" ? 'ml-1' : 'mr-1'}}"></i> {{\App\CPU\translate('Orders')}}
+                        <i class="tio-shopping-cart-outlined {{Session::get('direction') === "rtl" ? 'ml-1' : 'mr-1'}}"></i> {{translate('orders')}}
                     </a>
                 </div>
-                <!-- End Unfold -->
             </div>
-            <!-- End Header -->
 
             @php
                 $sold=[];
@@ -290,7 +263,7 @@
                 $from = \Carbon\Carbon::now()->startOfYear()->format('Y-m-d');
                 $to = \Carbon\Carbon::now()->endOfYear()->format('Y-m-d');
 
-                $data=\App\Model\OrderTransaction::where(['status'=>'disburse'])->select(
+                $data=\App\Models\OrderTransaction::where(['status'=>'disburse'])->select(
                 \Illuminate\Support\Facades\DB::raw('SUM(order_amount) as sum'),
                 \Illuminate\Support\Facades\DB::raw('YEAR(created_at) year, MONTH(created_at) month')
                 )->whereBetween('created_at', [$from, $to])->groupby('year', 'month')->get()->toArray();
@@ -311,7 +284,7 @@
                 $from = \Carbon\Carbon::now()->startOfYear()->format('Y-m-d');
                 $to = \Carbon\Carbon::now()->endOfYear()->format('Y-m-d');
 
-                $data=\App\Model\OrderTransaction::where(['status'=>'disburse'])->select(
+                $data=\App\Models\OrderTransaction::where(['status'=>'disburse'])->select(
                 \Illuminate\Support\Facades\DB::raw('SUM(tax) as sum'),
                 \Illuminate\Support\Facades\DB::raw('YEAR(created_at) year, MONTH(created_at) month')
                 )->whereBetween('created_at', [$from, $to])->groupby('year', 'month')->get()->toArray();
@@ -331,7 +304,7 @@
                 $from = \Carbon\Carbon::now()->startOfYear()->format('Y-m-d');
                 $to = \Carbon\Carbon::now()->endOfYear()->format('Y-m-d');
 
-                $data=\App\Model\OrderTransaction::where(['status'=>'disburse'])->select(
+                $data=\App\Models\OrderTransaction::where(['status'=>'disburse'])->select(
                 \Illuminate\Support\Facades\DB::raw('SUM(admin_commission) as sum'),
                 \Illuminate\Support\Facades\DB::raw('YEAR(created_at) year, MONTH(created_at) month')
                 )->whereBetween('created_at', [$from, $to])->groupby('year', 'month')->get()->toArray();
@@ -346,10 +319,7 @@
             }
             @endphp
 
-
-                <!-- Body -->
             <div class="card-body">
-                <!-- Bar Chart -->
                 <div class="chartjs-custom __h-18rem">
                     <canvas class="js-chart"
                             data-hs-chartjs-options='{
@@ -408,7 +378,7 @@
                                     "fontColor": "#97a4af",
                                     "fontFamily": "Open Sans, sans-serif",
                                     "padding": 5,
-                                    "postfix": " {{ \App\CPU\BackEndHelper::currency_symbol() }}"
+                                    "postfix": " {{ \App\Utils\BackEndHelper::currency_symbol() }}"
                                 }
                               }],
                               "xAxes": [{
@@ -441,45 +411,27 @@
                       }'>
                     </canvas>
                 </div>
-                <!-- End Bar Chart -->
             </div>
-            <!-- End Body -->
         </div>
-        <!-- End Card -->
-        <!-- End Row -->
     </div>
 @endsection
 
-@push('script')
-
-@endpush
-
 @push('script_2')
 
-    <script src="{{asset('public/assets/back-end')}}/vendor/chart.js/dist/Chart.min.js"></script>
+    <script src="{{dynamicAsset(path: 'public/assets/back-end/vendor/chart.js/dist/Chart.min.js')}}"></script>
     <script
-        src="{{asset('public/assets/back-end')}}/vendor/chartjs-chart-matrix/dist/chartjs-chart-matrix.min.js"></script>
-    <script src="{{asset('public/assets/back-end')}}/js/hs.chartjs-matrix.js"></script>
+            src="{{dynamicAsset(path: 'public/assets/back-end/vendor/chartjs-chart-matrix/dist/chartjs-chart-matrix.min.js')}}"></script>
+    <script src="{{dynamicAsset(path: 'public/assets/back-end/js/hs.chartjs-matrix.js')}}"></script>
 
     <script>
+        'use strict';
         $(document).on('ready', function () {
-
-            // INITIALIZATION OF FLATPICKR
-            // =======================================================
             $('.js-flatpickr').each(function () {
                 $.HSCore.components.HSFlatpickr.init($(this));
             });
-
-
-            // INITIALIZATION OF NAV SCROLLER
-            // =======================================================
             $('.js-nav-scroller').each(function () {
                 new HsNavScroller($(this)).init()
             });
-
-
-            // INITIALIZATION OF DATERANGEPICKER
-            // =======================================================
             $('.js-daterangepicker').daterangepicker();
 
             $('.js-daterangepicker-times').daterangepicker({
@@ -513,16 +465,12 @@
 
             cb(start, end);
 
-
-            // INITIALIZATION OF CHARTJS
-            // =======================================================
             $('.js-chart').each(function () {
                 $.HSCore.components.HSChartJS.init($(this));
             });
 
             var updatingChart = $.HSCore.components.HSChartJS.init($('#updatingData'));
 
-            // Call when tab is clicked
             $('[data-toggle="chart"]').click(function (e) {
                 let keyDataset = $(e.currentTarget).attr('data-datasets')
 
@@ -532,10 +480,6 @@
                 });
                 updatingChart.update();
             })
-
-
-            // INITIALIZATION OF MATRIX CHARTJS WITH CHARTJS MATRIX PLUGIN
-            // =======================================================
             function generateHoursData() {
                 var data = [];
                 var dt = moment().subtract(365, 'days').startOf('day');
@@ -631,38 +575,14 @@
                 }
             });
 
-
-            // INITIALIZATION OF CLIPBOARD
-            // =======================================================
             $('.js-clipboard').each(function () {
                 var clipboard = $.HSCore.components.HSClipboard.init(this);
             });
 
-
-            // INITIALIZATION OF CIRCLES
-            // =======================================================
             $('.js-circle').each(function () {
                 var circle = $.HSCore.components.HSCircles.init($(this));
             });
         });
-    </script>
-
-    <script>
-        $('#from_date,#to_date').change(function () {
-            let fr = $('#from_date').val();
-            let to = $('#to_date').val();
-            if (fr != '' && to != '') {
-                if (fr > to) {
-                    $('#from_date').val('');
-                    $('#to_date').val('');
-                    toastr.error('{{\App\CPU\translate('Invalid date range')}}!', Error, {
-                        CloseButton: true,
-                        ProgressBar: true
-                    });
-                }
-            }
-
-        })
     </script>
 @endpush
 

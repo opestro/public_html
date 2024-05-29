@@ -2,27 +2,45 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\Http\Controllers\Controller;
+use App\Contracts\Repositories\CategoryShippingCostRepositoryInterface;
+use App\Http\Controllers\BaseController;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use App\Model\CategoryShippingCost;
 use Brian2694\Toastr\Facades\Toastr;
-use App\CPU\BackEndHelper;
 
-class CategoryShippingCostController extends Controller
+class CategoryShippingCostController extends BaseController
 {
-    public function store(Request $request)
+    public function __construct(
+        private readonly CategoryShippingCostRepositoryInterface $categoryShippingCostRepo,
+    )
     {
-        if(isset($request->ids))
-        {
-            foreach($request->ids as $key=>$id){
-                $category_shipping_cost = CategoryShippingCost::find($id);
-                $category_shipping_cost->cost = BackEndHelper::currency_to_usd($request->cost[$key]);
-                $category_shipping_cost->multiply_qty = isset($request->multiplyQTY)==true? in_array($id,$request->multiplyQTY) ==true?1:0:0;
-                $category_shipping_cost->save();
+    }
+
+    /**
+     * @param Request|null $request
+     * @param string|null $type
+     * @return View|RedirectResponse Index function is the starting point of a controller
+     * Index function is the starting point of a controller
+     */
+    public function index(Request|null $request, string $type = null): View|RedirectResponse
+    {
+        return $this->add($request);
+    }
+
+    public function add(Request $request): RedirectResponse
+    {
+        if (isset($request->ids)) {
+            foreach ($request->ids as $key => $id) {
+                $this->categoryShippingCostRepo->updateOrInsert( params:['seller_id' => 0, 'category_id' => $request['category_ids'][$key]], data: [
+                    'cost' => currencyConverter(amount: $request['cost'][$key]),
+                    'multiply_qty' => isset($request->multiplyQTY) ? (in_array($id, $request->multiplyQTY) ? 1 : 0) : 0,
+                    'updated_at' => now()
+                ]);
             }
         }
 
-        Toastr::success('Category cost successfully updated.');
+        Toastr::success(translate('Category_cost_successfully_updated'));
         return back();
     }
 }

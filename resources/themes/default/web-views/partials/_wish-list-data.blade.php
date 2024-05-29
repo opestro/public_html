@@ -1,57 +1,64 @@
+@php($decimal_point_settings = getWebConfig(name: 'decimal_point_settings'))
 
 @if($wishlists->count()>0)
-    @foreach($wishlists as $wishlist)
-        @php($product = $wishlist->product_full_info)
-        @if( $wishlist->product_full_info)
-            <div class="card __card __card-mobile-340 mb-3">
-                <div class="product">
-                    <div class="card">
-                        <div class="row g-2">
-                            <div class="wishlist_product_img col-md-4 col-xl-2 col-lg-3 col-sm-4">
-                                <a href="{{route('product',$product->slug)}}" class="d-block h-100">
-                                    <img class="__img-full" src="{{\App\CPU\ProductManager::product_image_path('thumbnail')}}/{{$product['thumbnail']}}"
-                                    onerror="this.src='{{asset('public/assets/front-end/img/image-place-holder.png')}}'" alt="wishlist"
-                                        >
-                                </a>
-                            </div>
-                            <div class="wishlist_product_desc align-self-center col-sm-8 col-md-8 col-xl-10 col-lg-9 py-3 px-sm-4">
-                                <div class="font-name">
-                                    <a href="{{route('product',$product['slug'])}}">{{$product['name']}}</a>
-                                </div>
-                                @if($brand_setting)
-                                <span class="sellerName"> {{\App\CPU\translate('Brand')}} :{{$product->brand?$product->brand['name']:''}} </span>
-                                @endif
+    <div class="d-flex flex-column gap-10px">
+        @foreach($wishlists as $key=>$wishlist)
+            @php($product = $wishlist->productFullInfo)
+            @if( $wishlist->productFullInfo)
+                <div class="wishlist-item" id="row_id{{$product->id}}">
+                    <div class="wishlist-img position-relative">
+                        <a href="{{route('product',$product->slug)}}" class="d-block h-100">
+                            <img class="__img-full"
+                                 src="{{ getValidImage(path: 'storage/app/public/product/thumbnail/'.$product['thumbnail'], type: 'product') }}"
+                                 alt="{{ translate('wishlist') }}">
+                        </a>
 
-                                <div class="">
-                                    @if($product->discount > 0)
-                                    <strike style="color: #E96A6A;" class="{{Session::get('direction') === "rtl" ? 'ml-1' : 'mr-3'}}">
-                                        {{\App\CPU\Helpers::currency_converter($product->unit_price)}}
-                                    </strike>
+                        @if($product->discount > 0)
+                            <span class="for-discount-value px-1 font-bold fs-13 direction-ltr">
+                                @if ($product->discount_type == 'percent')
+                                    -{{round($product->discount,(!empty($decimal_point_settings) ? $decimal_point_settings: 0))}}%
+                                @elseif($product->discount_type =='flat')
+                                    -{{ webCurrencyConverter(amount: $product->discount) }}
                                 @endif
-                                <span
-                                    class="font-weight-bold amount">{{\App\CPU\Helpers::get_price_range($product) }}</span>
-                                </div>
+                            </span>
+                        @endif
+
+                    </div>
+                    <div class="wishlist-cont align-items-end align-items-sm-center">
+                        <div class="wishlist-text">
+                            <div class="font-name">
+                                <a class="fs-12 font-semibold line-height-16" href="{{route('product',$product['slug'])}}">{{$product['name']}}</a>
                             </div>
-                            <a href="javascript:" class="wishlist_product_icon">
-                                <i class="czi-close-circle" onclick="removeWishlist('{{$product['id']}}')"
-                                    style="color: red"></i>
-                            </a>
+                            @if($brand_setting)
+                                <span class="sellerName fs-12"> {{translate('brand')}} : <span
+                                        class="text-base">{{$product->brand?$product->brand['name']:''}}</span> </span>
+                            @endif
+
+                            <div class=" mt-sm-1">
+                                <span class="font-weight-bold amount text-dark price-range d-flex align-items-center gap-2">{!! getPriceRangeWithDiscount(product: $product) !!}</span>
+                            </div>
                         </div>
+                        <a href="javascript:" class="remove--icon function-remove-wishList" data-id="{{ $product['id'] }}"
+                           data-modal="remove-wishlist-modal">
+                            <i class="fa fa-heart web-text-primary"></i>
+                        </a>
+
                     </div>
                 </div>
-            </div>
-        @else
-            <span class="badge badge-danger">{{\App\CPU\translate('item_removed')}}</span>
-        @endif
-    @endforeach
+            @else
+                <span class="badge badge-danger">{{ translate('item_removed') }}</span>
+            @endif
+        @endforeach
+    </div>
 @else
-    <center>
-        <h6 class="text-muted">
-            {{\App\CPU\translate('No data found')}}.
-        </h6>
-    </center>
+    <div class="d-flex justify-content-center align-items-center h-100">
+        <div class="login-card w-100 border-0 shadow-none">
+            <div class="text-center py-3 text-capitalize">
+                <img src="{{ theme_asset(path: 'public/assets/front-end/img/icons/wishlist.png') }}" alt="" class="mb-4" width="70">
+                <h5 class="fs-14">{{ translate('no_product_found_in_wishlist') }}!</h5>
+            </div>
+        </div>
+    </div>
 @endif
 
-<div class="card-footer border-0">
-    {{$wishlists->links()}}
-</div>
+<div class="card-footer border-0">{{ $wishlists->links() }}</div>

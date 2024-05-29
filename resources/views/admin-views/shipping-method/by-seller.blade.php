@@ -1,17 +1,16 @@
 @extends('layouts.back-end.app')
 
 @push('css_or_js')
-    <!-- Custom styles for this page -->
-    <link href="{{asset('public/assets/back-end')}}/vendor/datatables/dataTables.bootstrap4.min.css" rel="stylesheet">
+    <link href="{{dynamicAsset(path: 'public/assets/back-end/vendor/datatables/dataTables.bootstrap4.min.css')}}" rel="stylesheet">
     <meta name="csrf-token" content="{{ csrf_token() }}">
 @endpush
 
 @section('content')
-    <div class="content container-fluid __inline-6"> <!-- Page Heading -->
+    <div class="content container-fluid __inline-6">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a href="{{route('admin.dashboard')}}">{{\App\CPU\translate('Dashboard')}}</a></li>
-                <li class="breadcrumb-item" aria-current="page">{{\App\CPU\translate('Shipping Method by Seller')}}</li>
+                <li class="breadcrumb-item"><a href="{{route('admin.dashboard.index')}}">{{translate('dashboard')}}</a></li>
+                <li class="breadcrumb-item" aria-current="page">{{translate('shipping_Method_by_Vendor')}}</li>
             </ol>
         </nav>
 
@@ -19,7 +18,7 @@
             <div class="col-md-12">
                 <div class="card">
                     <div class="card-header">
-                        <h5>{{\App\CPU\translate('shipping_method')}} {{\App\CPU\translate('table')}} ( {{\App\CPU\translate('Suggested')}} )</h5>
+                        <h5>{{translate('shipping_method_table')}} ( {{translate('suggested')}} )</h5>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -27,12 +26,12 @@
                                    style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};">
                                 <thead>
                                 <tr>
-                                    <th scope="col">{{\App\CPU\translate('sl#')}}</th>
-                                    <th scope="col">{{\App\CPU\translate('title')}}</th>
-                                    <th scope="col">{{\App\CPU\translate('duration')}}</th>
-                                    <th scope="col">{{\App\CPU\translate('cost')}}</th>
-                                    <th scope="col">{{\App\CPU\translate('status')}}</th>
-                                    <th scope="col" class="__w-50px">{{\App\CPU\translate('action')}}</th>
+                                    <th scope="col">{{translate('SL')}}#</th>
+                                    <th scope="col">{{translate('title')}}</th>
+                                    <th scope="col">{{translate('duration')}}</th>
+                                    <th scope="col">{{translate('cost')}}</th>
+                                    <th scope="col">{{translate('status')}}</th>
+                                    <th scope="col" class="__w-50px">{{translate('action')}}</th>
                                 </tr>
                                 </thead>
                                 <tbody>
@@ -41,14 +40,14 @@
                                         <th scope="row">{{$k+1}}</th>
                                         <td>
                                             {{$method['title']}}<br>
-                                            {{\App\CPU\translate('By')}} : <a
-                                                href="{{route('admin.sellers.view',$method->creator_id)}}">{{$method->seller->f_name??""}} {{$method->seller->l_name??""}}</a>
+                                            {{translate('by')}} : <a
+                                                    href="{{route('admin.vendors.view',$method->creator_id)}}">{{$method->seller->f_name??""}} {{$method->seller->l_name??""}}</a>
                                         </td>
                                         <td>
                                             {{$method['duration']}}
                                         </td>
                                         <td>
-                                            {{\App\CPU\BackEndHelper::usd_to_currency($method['cost']) .\App\CPU\BackEndHelper::currency_symbol()}}
+                                            {{\App\Utils\BackEndHelper::usd_to_currency($method['cost']) .\App\Utils\BackEndHelper::currency_symbol()}}
                                         </td>
 
                                         <td>
@@ -69,9 +68,9 @@
                                                 </button>
                                                 <div class="dropdown-menu" aria-labelledby="dropdownMenuButton">
                                                     <a class="dropdown-item"
-                                                       href="{{route('admin.business-settings.shipping-method.edit',[$method['id']])}}">{{\App\CPU\translate('Edit')}}</a>
+                                                       href="{{route('admin.business-settings.shipping-method.edit',[$method['id']])}}">{{translate('edit')}}</a>
                                                     <a class="dropdown-item delete cursor-pointer"
-                                                       id="{{ $method['id'] }}">{{\App\CPU\translate('Delete')}}</a>
+                                                       id="{{ $method['id'] }}">{{translate('delete')}}</a>
                                                 </div>
                                             </div>
                                         </td>
@@ -89,8 +88,8 @@
 
 @push('script')
     <!-- Page level plugins -->
-    <script src="{{asset('public/assets/back-end')}}/vendor/datatables/jquery.dataTables.min.js"></script>
-    <script src="{{asset('public/assets/back-end')}}/vendor/datatables/dataTables.bootstrap4.min.js"></script>
+    <script src="{{dynamicAsset(path: 'public/assets/back-end/vendor/datatables/jquery.dataTables.min.js')}}"></script>
+    <script src="{{dynamicAsset(path: 'public/assets/back-end/vendor/datatables/dataTables.bootstrap4.min.js')}}"></script>
     <!-- Page level custom scripts -->
 
 
@@ -120,19 +119,20 @@
                     status: status
                 },
                 success: function () {
-                    toastr.success('{{\App\CPU\translate('Status updated successfully')}}');
+                    toastr.success('{{translate("status_updated_successfully")}}');
                 }
             });
         });
         $(document).on('click', '.delete', function () {
             var id = $(this).attr("id");
             Swal.fire({
-                title: '{{\App\CPU\translate('Are you sure delete this')}} ?',
-                text: "{{\App\CPU\translate('You will not be able to revert this')}}!",
+                title: '{{translate("are_you_sure_delete_this")}} ?',
+                text: "{{translate('you_will_not_be_able_to_revert_this')}}!",
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
                 cancelButtonColor: '#d33',
-                confirmButtonText: '{{\App\CPU\translate('Yes')}}, {{\App\CPU\translate('delete it')}}!'
+                confirmButtonText: '{{translate("yes_delete_it")}}!',
+                cancelButtonText: '{{ translate("cancel") }}',
             }).then((result) => {
                 if (result.value) {
                     $.ajaxSetup({
@@ -145,7 +145,7 @@
                         method: 'POST',
                         data: {id: id},
                         success: function () {
-                            toastr.success('{{\App\CPU\translate('Shipping Method deleted successfully')}}');
+                            toastr.success('{{translate("shipping_Method_deleted_successfully")}}');
                             location.reload();
                         }
                     });

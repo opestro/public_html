@@ -2,7 +2,7 @@
 
 namespace App\Http\Middleware;
 
-use App\CPU\Helpers;
+use App\Utils\Helpers;
 use Brian2694\Toastr\Facades\Toastr;
 use Closure;
 
@@ -21,7 +21,7 @@ class ModulePermissionMiddleware
             return $next($request);
         }
 
-        Toastr::error('Access Denied !');
+        Toastr::error(translate('access_Denied').'!');
         return back();
     }
 }

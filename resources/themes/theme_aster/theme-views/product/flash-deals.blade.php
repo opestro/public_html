@@ -1,15 +1,12 @@
 @extends('theme-views.layouts.app')
 
-@section('title',translate('flash_Deal_Products').' | '.$web_config['name']->value.' '.translate(' Ecommerce'))
+@section('title',translate('flash_Deal_Products').' | '.$web_config['name']->value.' '.translate('ecommerce'))
 
 @section('content')
-
-    <!-- Main Content -->
     <main class="main-content d-flex flex-column gap-3 py-3">
-        <!-- Product -->
         <section>
             <div class="container">
-                <div class=" lg-down-1 gap-3" style="--width: 16rem">
+                <div class=" lg-down-1 gap-3 wid width--16rem">
                     <div class="">
                         <div class="d-flex flex-wrap flex-lg-nowrap align-items-start justify-content-between gap-3 mb-2">
                             <div class="flex-middle gap-3"></div>
@@ -37,8 +34,8 @@
                                         <img width="122" src="{{ theme_asset('assets/img/media/flash-deal.svg') }}" loading="lazy" alt="" class="dark-support svg">
                                     </div>
                                     <div class="d-flex justify-content-center  align-items-end gap-2 mb-4">
-                                        <h2 class="text-primary fw-medium">{{ translate('Hurry_up') }} !</h2>
-                                        <div class="text-muted">{{ translate('offer_ends_in') }}:</div>
+                                        <h2 class="text-primary fw-medium">{{ translate('hurry_up').'!' }}</h2>
+                                        <div class="text-muted">{{ translate('offer_ends_in').':' }}</div>
                                     </div>
                                 </div>
                                 <div class="countdown-timer justify-content-center d-flex gap-3 gap-sm-4 flex-wrap align-content-center" data-date="{{$web_config['flash_deals']?$web_config['flash_deals']['end_date']:''}}">
@@ -49,12 +46,11 @@
                                 </div>
                             </div>
                             <div class="card-body">
-                                <div class="auto-col gap-3" id="filtered-products" style="--minWidth:12rem">
-                                    <!-- Single Product -->
-                                    @foreach($deal->products as $product)
-                                        @if(!empty($product->product))
-                                            @include('theme-views.partials._product-small-card',['product'=>$product->product])
-                                        @endif
+                                <div class="row g-3" id="filtered-products" class="minWidth-12rem">
+                                    @foreach($flashDealProducts as $flashDealProduct)
+                                        <div class="col-xxl-2 col-xl-3 col-md-4 col-sm-6">
+                                            @include('theme-views.partials._product-small-card',['product' => $flashDealProduct])
+                                        </div>
                                     @endforeach
                                 </div>
                             </div>
@@ -64,7 +60,5 @@
             </div>
         </section>
     </main>
-    <!-- End Main Content -->
-
 @endsection
 

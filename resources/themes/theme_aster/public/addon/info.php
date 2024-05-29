@@ -2,7 +2,7 @@
   'software_id' => '0001',
   'name' => 'theme_aster',
   'is_active' => 1,
-  'purchase_code' => '643516541',
-  'username' => 'aster',
+  'purchase_code' => 'okldfsj',
+  'username' => 'dgkjnjkfd',
   'image' => 'electronics-theme.png',
 );

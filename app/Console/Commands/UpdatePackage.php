@@ -51,6 +51,15 @@ class UpdatePackage extends Command
             }
         }
 
+        $add_on_folder = base_path('Modules');
+        $add_on_directories = glob($add_on_folder . '/*', GLOB_ONLYDIR);
+        foreach ($add_on_directories as $directory) {
+            $array = explode('/', $directory);
+            if (File::isDirectory($directory)) {
+                File::deleteDirectory($directory);
+            }
+        }
+
         $routes = base_path('app/Providers/RouteServiceProvider.php');
         $new_routes = base_path('installation/activate_update_routes.txt');
         copy($new_routes, $routes);

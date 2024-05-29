@@ -4,16 +4,17 @@ namespace App\Http;
 
 use App\Http\Middleware\ActivationCheckMiddleware;
 use App\Http\Middleware\AdminMiddleware;
+use App\Http\Middleware\APIGuestMiddleware;
 use App\Http\Middleware\APILocalizationMiddleware;
 use App\Http\Middleware\CustomerIsActiveCheck;
 use App\Http\Middleware\CustomerMiddleware;
 use App\Http\Middleware\DeliveryManAuth;
+use App\Http\Middleware\GuestMiddleware;
 use App\Http\Middleware\InstallationMiddleware;
 use App\Http\Middleware\MaintenanceModeMiddleware;
 use App\Http\Middleware\ModulePermissionMiddleware;
 use App\Http\Middleware\SellerApiAuthMiddleware;
 use App\Http\Middleware\SellerMiddleware;
-use App\Model\Seller;
 use Illuminate\Foundation\Http\Kernel as HttpKernel;
 
 class Kernel extends HttpKernel
@@ -43,7 +44,6 @@ class Kernel extends HttpKernel
             \App\Http\Middleware\EncryptCookies::class,
             \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
             \Illuminate\Session\Middleware\StartSession::class,
-            // \Illuminate\Session\Middleware\AuthenticateSession::class,
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
@@ -51,7 +51,7 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            'throttle:60,1',
+            'throttle:3000,1',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
     ];
@@ -83,7 +83,9 @@ class Kernel extends HttpKernel
         'api_lang' => APILocalizationMiddleware::class,
         'maintenance_mode' => MaintenanceModeMiddleware::class,
         'delivery_man_auth' => DeliveryManAuth::class,
-        'seller_api_auth' => SellerApiAuthMiddleware::class
+        'seller_api_auth' => SellerApiAuthMiddleware::class,
+        'guestCheck' => GuestMiddleware::class,
+        'apiGuestCheck' => APIGuestMiddleware::class,
     ];
 
     /**
