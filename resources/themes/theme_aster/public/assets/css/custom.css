@@ -1,0 +1,225 @@
+.z-9999 {
+    z-index: 9999;
+}
+.z-999 {
+    z-index: 999;
+}
+.z-99 {
+    z-index: 99;
+}
+.__opacity-half {
+    --opacity: 0.5;
+}
+.opacity-half {
+    opacity: 0.5;
+}
+.cursor-auto{
+    cursor: auto;
+}
+.page-paragraph p {
+    text-align: justify !important;
+    margin: 1rem 0 30px 0 !important;
+}
+.__h-14rem {
+    height: 14rem;
+}
+.__h-30rem {
+    height: 30rem;
+}
+.d--none {
+    display: none;
+}
+
+.toggle-shipping-saved-addresses.arrow-up span {
+    transform: rotate(180deg);
+    display: inline-block;
+}
+
+/* Product Details Page CSS || Start */
+.option-select-btn.custom_01_option label input:checked ~ * {
+    border: 2px solid #fff;
+    outline: 1px solid var(--bs-primary);
+}
+.wishlist_icon_active {
+    background-color: var(--bs-primary) !important;
+    color: var(--bs-white) !important;
+}
+.compare_list_icon_active {
+    background-color: var(--bs-primary) !important;
+    color: var(--bs-white) !important;
+}
+.color_variants {
+    width: 20px;
+    height: 20px;
+}
+.color_variant_active {
+    border: 3px solid #fff;
+    outline: 2px solid var(--bs-primary);
+}
+/* Product Details Page CSS || End */
+
+/* Product  */
+.temporary-closed {
+    min-width: 100%;
+    min-height: 100%;
+    block-size: var(--size);
+    inline-size: var(--size);
+    display: grid;
+    place-items: center;
+    top: 0;
+    background: #000000bf;
+    color: var(--bs-light);
+    font-weight: 700;
+}
+
+/* Seller Search Box || Start */
+.custom_search {
+    width: -webkit-fill-available;
+}
+.custom_search .select-wrap {
+    width: -webkit-fill-available;
+    border-start-start-radius: 0.25rem;
+    border-end-start-radius: 0.25rem;
+}
+
+.custom_search input {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+}
+.custom_search button {
+    border-radius: 0.25rem;
+    border-start-start-radius: 0rem;
+    border-end-start-radius: 0rem;
+}
+
+.--mt-15 {
+    margin-top: 15px;
+}
+/* Seller Search Box || End */
+
+/* Product View Page || Start */
+
+.products_aside_brands::-webkit-scrollbar,
+.products_aside_categories::-webkit-scrollbar {
+    width: 3px;
+}
+
+.products_aside_brands::-webkit-scrollbar:hover,
+.products_aside_categories::-webkit-scrollbar:hover {
+    opacity: 1;
+}
+.products_aside_brands::-webkit-scrollbar-track,
+.products_aside_categories::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+.products_aside_brands::-webkit-scrollbar-thumb,
+.products_aside_categories::-webkit-scrollbar-thumb {
+    background: #bbbbbb;
+    border-radius: 10px;
+}
+
+.products_aside_categories,
+.products_aside_brands {
+    max-height: 22.5rem;
+    overflow: hidden;
+}
+.custom_common_nav li.has-sub-item:after {
+    content: "";
+}
+.custom_common_nav li.has-sub-item span {
+    transition: all 300ms ease-in-out;
+    padding: 0 10px;
+    cursor: pointer;
+}
+.custom_common_nav li.has-sub-item.sub-menu-opened span.rotateicon {
+    -webkit-transform: rotate(90deg);
+    -ms-transform: rotate(90deg);
+    transform: rotate(90deg);
+}
+/* Product View Page || End */
+
+.__vertical-middle {
+    vertical-align: middle;
+}
+
+/* whatsapp chat css start */
+.social-chat-icons {
+    position: fixed;
+    inset-inline-end: 2%;
+    inset-block-end: 80px;
+    z-index: 9;
+    transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.social-chat-icons.active {
+    inset-block-end: 9.375rem;
+}
+
+.chat-image-shadow {
+    filter: drop-shadow(0 0 0.35rem rgba(var(--bs-primary-rgb), 0.3));
+}
+
+.lightbox-image {
+    max-height: 80vh;
+    vertical-align: middle;
+}
+
+.img-w-h-100 {
+    height: 6.25rem;
+    width: 6.25rem;
+}
+/* whatsapp chat css end */
+
+.shop-bg-card{
+    --bg-color: 255, 255, 255
+}
+[theme="dark"] .shop-bg-card{
+    --bg-color: 20,20,20
+}
+
+/* Product List Page Mobile CSS */
+@media (max-width: 767px) {
+    .mobile_two_items {
+        --minWidth: 9rem !important;
+        --maxWidth: 1fr !important;
+    }
+}
+/* Product List Page Mobile CSS */
+
+@media (max-width: 479px) {
+    h1,
+    .h1 {
+        --h1_fs: 1.5rem;
+    }
+    h2,
+    .h2 {
+        font-size: 1.2rem;
+    }
+    h3,
+    .h3 {
+        font-size: 1rem;
+    }
+    h4,
+    .h4 {
+        font-size: 0.9rem;
+    }
+}
+
+.product-details-content .option-select-btn.weight-style--two label > span {
+    padding: 0.25rem 0.5rem;
+    line-height: 1;
+    border-radius: 0.25rem;
+}
+
+.products-comments-img a {
+    display: block;
+    width: 50px;
+}
+
+.products-comments-img a img {
+    width: 100%;
+    border-radius: 4px;
+}
