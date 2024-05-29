@@ -1,96 +1,54 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
-<html xmlns="http://www.w3.org/1999/xhtml">
-
+<!DOCTYPE html>
+<html>
 <head>
-
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-
-    <title>{{\App\CPU\translate('Order Placed')}}</title>
-
-    <style>
-
-        body {
-            background-color: #FFFFFF;
-            padding: 0;
-            margin: 0;
-        }
-    </style>
-
+    <meta charset="utf-8">
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <title>{{ translate('Order_Placed') }}</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/css/email-basic.css') }}">
 </head>
+<body>
 
-<body style="background-color: #FFFFFF; padding: 0; margin: 0;">
+<?php
 
-<table border="0" cellpadding="0" cellspacing="10" height="100%" bgcolor="#FFFFFF" width="100%"
-       style="max-width: 650px;" id="bodyTable">
+$companyPhone = getWebConfig(name: 'company_phone');
+$companyEmail = getWebConfig(name: 'company_email');
+$companyName = getWebConfig(name: 'company_name');
+$companyLogo = getWebConfig(name: 'company_web_logo');
+?>
 
-    <tr>
+<div class="d-flex justify-content-center align-items-center m-auto vh-100">
+    <div class="card">
+        <div class="m-auto bg-white pt-40px pb-40px text-center">
+            <div class="d-block">
+                @if(is_file('storage/app/public/company/'.$companyLogo))
+                    <div class="d-flex justify-content-center align-items-center gap-1">
+                        <img src="{{ dynamicStorage(path: 'storage/app/public/company/'.$companyLogo) }}" alt="{{ $companyName }}"
+                             class="width-auto h-50px">
+                        {{ $companyName }}
+                    </div>
+                @else
+                    {{ $companyName }}
+                @endif
+            </div>
+        </div>
+        <div class="card-header mb-3 text-center">
+            <h3 class="pb-20px">{{ translate('Notification mail for order placed') }}</h3>
+            {{ translate('We have sent you this email in response to your order placed. You will be able to see your order status after login to your account') }}.
+            <br/>
+            <h3 class="pt-20px">{{ translate('Your_order_ID') }}</h3>
+        </div>
+        <div class="card-body">
+            <h1 class="text-info text-center pb-20px">{{ $id }}</h1>
 
-        <td align="center" valign="top">
+            <p class="text-center">
+                {{ translate('If you need help, or you have any other questions, feel free to email us') }}.
+                {{ translate('From') }} {{$web_config['name']->value}}
+            </p>
 
-            <table border="0" cellpadding="0" cellspacing="0" width="100%" id="emailContainer"
-                   style="font-family:Arial; color: #333333;">
-
-                <!-- Logo -->
-                @php($logo=\App\Model\BusinessSetting::where(['type'=>'company_web_logo'])->first()->value)
-                <tr>
-
-                    <td align="left" valign="top" colspan="2"
-                        style="border-bottom: 1px solid #CCCCCC; padding-bottom: 10px;">
-                        <img alt="" border="0" src="{{url('/').'/storage/app/public/company/'.$logo}}" title=""
-                             class="sitelogo" width="60%" style="max-width:250px;"/>
-                    </td>
-
-                </tr>
-
-                <!-- Title -->
-
-                <tr>
-
-                    <td align="left" valign="top" colspan="2"
-                        style="border-bottom: 1px solid #CCCCCC; padding: 20px 0 10px 0;">
-                        <span style="font-size: 18px; font-weight: normal;">{{\App\CPU\translate('Notification mail for order placed')}}</span>
-                    </td>
-
-                </tr>
-
-                <!-- Messages -->
-
-                <tr>
-
-                    <td align="left" valign="top" colspan="2" style="padding-top: 10px;">
-
-                        <span style="font-size: 12px; line-height: 1.5; color: #333333;">
-
-                            {{\App\CPU\translate('We have sent you this email in response to your order placed. You will be able to see your order status after login to your account')}}.
-
-                            <br/><br/>
-
-                            {{\App\CPU\translate('Your order ID')}} :
-
-                            <a href="javascript:"> <h3 style="font-weight: 1000">{{$id}}</h3> </a>
-
-                            <br/><br/>
-
-                            {{\App\CPU\translate('If you need help, or you have any other questions, feel free to email us')}}.
-
-                            <br/><br/>
-                           {{\App\CPU\translate('From')}} {{$web_config['name']->value}}
-                        </span>
-
-                    </td>
-
-                </tr>
-
-            </table>
-
-        </td>
-
-    </tr>
-
-</table>
-
+        </div>
+    </div>
+</div>
 </body>
-
 </html>
+

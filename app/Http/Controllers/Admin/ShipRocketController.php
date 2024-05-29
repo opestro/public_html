@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\CPU\Helpers;
+use App\Utils\Helpers;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Request;
 use Seshac\Shiprocket\Shiprocket;
@@ -19,8 +19,6 @@ class ShipRocketController extends Controller
             'password' => isset($config) ? $config['password'] : 'no_password'
         ]);
 
-        /*'email' => 'techysaiful.com@gmail.com',
-            'password' => '#6ajZx!!3cpMZBu'*/
     }
 
     public function login(Request $request)

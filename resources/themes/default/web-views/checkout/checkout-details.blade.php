@@ -1,42 +1,25 @@
 @extends('layouts.front-end.app')
 
-@section('title',\App\CPU\translate('Checkout Process Start'))
-
-@push('css_or_js')
-    <link rel="stylesheet" href="{{asset('public/assets/front-end')}}/css/checkout-details.css"/>
-    <style>
-        .nav-tabs .nav-link.active, .nav-tabs .nav-item.show .nav-link {
-            background: {{$web_config['primary_color']}};
-            border-color: {{$web_config['primary_color']}};
-        }
-
-        .nav-tabs .nav-link {
-            background: {{$web_config['secondary_color']}};
-            border: 1px solid{{$web_config['secondary_color']}};
-        }
-    </style>
-@endpush
+@section('title', translate('Checkout'))
 
 @section('content')
 
-    <div class="container pb-5 mb-2 mb-md-4 rtl __inline-54" style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};">
+    <div class="container pb-5 mb-2 mb-md-4 rtl __inline-54 text-align-direction checkout-details-page">
         <div class="row">
             <div class="col-md-12 mb-5 pt-5">
                 <div class="feature_header __feature_header">
-                    <span>{{ \App\CPU\translate('sign_in')}}</span>
+                    <span>{{ translate('sign_in')}}</span>
                 </div>
             </div>
             <section class="col-lg-8">
                 <div class="checkout_details">
-                @include('web-views.partials._checkout-steps',['step'=>1])
-                <!-- Shipping methods table-->
-                    <h2 class="h4 pb-3 mb-2 mt-5">{{\App\CPU\translate('Authentication')}}</h2>
-                    <!-- Autor info-->
+                    @include('web-views.partials._checkout-steps',['step'=>1])
+                    <h2 class="h4 pb-3 mb-2 mt-5">{{translate('authentication')}}</h2>
                     @if(auth('customer')->check())
                         <div class="card">
                             <div class="card-body">
-                                <h4>{{auth('customer')->user()->f_name}}, {{\App\CPU\translate('HI')}}!</h4>
-                                <small>{{\App\CPU\translate('you_are_already_login_proceed')}}.</small>
+                                <h4>{{auth('customer')->user()->f_name}}, {{translate('Hi')}}!</h4>
+                                <small>{{translate('you_are_already_Sign_in_proceed')}}.</small>
                             </div>
                         </div>
                     @else
@@ -45,19 +28,18 @@
                                 <ul class="nav nav-tabs mt-2 d-flex justify-content-between" role="tablist">
                                     <li class="nav-item d-inline-block">
                                         <a class="nav-link active" href="#signin" data-toggle="tab" role="tab">
-                                            {{\App\CPU\translate('Sign In')}}
+                                            {{translate('sign_in')}}
                                         </a>
                                     </li>
                                     <li class="nav-item d-inline-block">
                                         <a class="nav-link" href="#signup" data-toggle="tab" role="tab">
-                                            {{\App\CPU\translate('Sign Up')}}
+                                            {{ translate('sign_up')}}
                                         </a>
                                     </li>
                                 </ul>
                             </div>
                             <div class="col-12">
                                 <div class="tab-content">
-                                    <!-- Tech specs tab-->
                                     <div class="tab-pane fade show active" id="signin" role="tabpanel">
                                         <form class="needs-validation" autocomplete="off" id="login-form"
                                               action="{{route('customer.auth.login')}}" method="post" novalidate>
@@ -65,26 +47,27 @@
                                             <div class="form-row">
                                                 <div class="col-sm-6">
                                                     <div class="form-group">
-                                                        <label
-                                                            for="si-email">{{\App\CPU\translate('email_address')}}</label>
+                                                        <label for="si-email">
+                                                            {{ translate('email_address')}}
+                                                        </label>
                                                         <input class="form-control" type="email" name="email"
                                                                id="si-email" value="{{old('email')}}"
-                                                               placeholder="johndoe@example.com"
-                                                               required>
-                                                        <div class="invalid-feedback">{{\App\CPU\translate('Please provide a valid email address')}}.
+                                                               placeholder="{{ translate('enter_your_email') }}" required>
+                                                        <div class="invalid-feedback">
+                                                            {{ translate('please_provide_a_valid_email_address')}}
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-sm-6">
                                                     <div class="form-group">
-                                                        <label for="si-password">{{\App\CPU\translate('Password')}}</label>
-                                                        <div class="password-toggle">
+                                                        <label for="si-password">{{ translate('password')}}</label>
+                                                        <div class="password-toggle rtl">
                                                             <input class="form-control" name="password" type="password"
                                                                    id="si-password" required>
                                                             <label class="password-toggle-btn">
                                                                 <input class="custom-control-input" type="checkbox"><i
                                                                     class="czi-eye password-toggle-indicator"></i><span
-                                                                    class="sr-only">{{\App\CPU\translate('Show password')}}</span>
+                                                                    class="sr-only">{{ translate('show_password')}}</span>
                                                             </label>
                                                         </div>
                                                     </div>
@@ -98,12 +81,12 @@
                                                                    {{ old('remember') ? 'checked' : '' }}
                                                                    id="remember_me">
                                                             <label for="remember_me" class="cursor-pointer">
-                                                                {{\App\CPU\translate('remember_me')}}
+                                                                {{ translate('remember_me')}}
                                                             </label>
 
                                                             <a class="font-size-sm {{Session::get('direction') === "rtl" ? 'mr-5' : 'ml-5'}}"
                                                                href="{{route('customer.auth.recover-password')}}">
-                                                                {{\App\CPU\translate('forgot_password')}}?
+                                                                {{ translate('forgot_password')}}?
                                                             </a>
                                                         </div>
                                                     </div>
@@ -111,8 +94,9 @@
                                             </div>
                                             <div class="form-row">
                                                 <div class="col">
-                                                    <button class="btn btn--primary btn-block"
-                                                            type="submit">{{\App\CPU\translate('sing_in')}}</button>
+                                                    <button class="btn btn--primary btn-block" type="submit">
+                                                        {{ translate('sing_in')}}
+                                                    </button>
                                                 </div>
                                             </div>
                                         </form>
@@ -125,41 +109,47 @@
                                             <div class="form-row">
                                                 <div class="col-sm-6">
                                                     <div class="form-group">
-                                                        <label for="su-name">{{\App\CPU\translate('first_name')}}</label>
+                                                        <label for="su-name">{{ translate('first_name')}}</label>
                                                         <input class="form-control" type="text" name="f_name"
-                                                               placeholder="John" required>
-                                                        <div class="invalid-feedback">{{\App\CPU\translate('Please fill in your name')}}.</div>
+                                                               placeholder="{{ translate('John') }}" required>
+                                                        <div class="invalid-feedback">
+                                                            {{ translate('please_fill_in_your_first_name.')}}
+                                                        </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-sm-6">
                                                     <div class="form-group">
-                                                        <label for="su-name">{{\App\CPU\translate('last_name')}} </label>
+                                                        <label for="su-name">{{ translate('last_name')}} </label>
                                                         <input class="form-control" type="text" name="l_name"
-                                                               placeholder="Doe" required>
-                                                        <div class="invalid-feedback">{{\App\CPU\translate('Please fill in your name')}}.</div>
+                                                               placeholder="{{ translate('Doe') }}" required>
+                                                        <div class="invalid-feedback">
+                                                            {{ translate('please_fill_in_your_last_name.')}}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>
                                             <div class="form-row">
                                                 <div class="col-sm-6">
                                                     <div class="form-group">
-                                                        <label
-                                                            for="su-email">{{\App\CPU\translate('email_address')}}</label>
+                                                        <label for="su-email">
+                                                            {{ translate('email_address')}}
+                                                        </label>
                                                         <input class="form-control" name="email" type="email"
-                                                               id="su-email"
-                                                               placeholder="johndoe@example.com"
+                                                               id="su-email" placeholder="{{ translate('enter_your_email') }}"
                                                                required>
-                                                        <div class="invalid-feedback">{{\App\CPU\translate('Please provide a valid email address')}}.
+                                                        <div class="invalid-feedback">
+                                                            {{ translate('please_provide_a_valid_email_address.')}}
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-sm-6">
                                                     <div class="form-group">
-                                                        <label for="su-email">{{\App\CPU\translate('Phone')}}</label>
+                                                        <label for="su-email">{{ translate('phone')}}</label>
                                                         <input class="form-control" name="phone" type="number"
-                                                               id="su-phone" placeholder="{{\App\CPU\translate('01700000000')}}"
+                                                               id="su-phone" placeholder="{{ translate('01700000000')}}"
                                                                required>
-                                                        <div class="invalid-feedback">{{\App\CPU\translate('Please provide a valid phone number')}}.
+                                                        <div class="invalid-feedback">
+                                                            {{ translate('please_provide_a_valid_phone_number.')}}
                                                         </div>
                                                     </div>
                                                 </div>
@@ -167,30 +157,33 @@
                                             <div class="form-row">
                                                 <div class="col-sm-6">
                                                     <div class="form-group">
-                                                        <label for="su-password">{{\App\CPU\translate('Password')}}</label>
+                                                        <label for="su-password">{{ translate('password')}}</label>
                                                         <div class="password-toggle">
                                                             <input class="form-control" name="password" type="password"
                                                                    id="su-password" required>
                                                             <label class="password-toggle-btn">
                                                                 <input class="custom-control-input" type="checkbox"><i
                                                                     class="czi-eye password-toggle-indicator"></i><span
-                                                                    class="sr-only">{{\App\CPU\translate('Show password')}}</span>
+                                                                    class="sr-only">{{ translate('show_password')}}</span>
                                                             </label>
                                                         </div>
                                                     </div>
                                                 </div>
                                                 <div class="col-sm-6">
                                                     <div class="form-group">
-                                                        <label
-                                                            for="su-password-confirm">{{\App\CPU\translate('confirm_password')}}</label>
-                                                        <div class="password-toggle">
+                                                        <label for="su-password-confirm">
+                                                            {{ translate('confirm_password')}}
+                                                        </label>
+                                                        <div class="password-toggle rtl">
                                                             <input class="form-control" name="con_password"
                                                                    type="password" id="su-password-confirm"
                                                                    required>
                                                             <label class="password-toggle-btn">
-                                                                <input class="custom-control-input" type="checkbox"><i
-                                                                    class="czi-eye password-toggle-indicator"></i><span
-                                                                    class="sr-only">{{\App\CPU\translate('Show password')}}</span>
+                                                                <input class="custom-control-input" type="checkbox">
+                                                                <i class="czi-eye password-toggle-indicator"></i>
+                                                                <span class="sr-only">
+                                                                    {{ translate('show_password')}}
+                                                                </span>
                                                             </label>
                                                         </div>
                                                     </div>
@@ -199,7 +192,7 @@
                                             <div class="form-row">
                                                 <div class="col">
                                                     <button class="btn btn--primary btn-block" type="submit">
-                                                        {{\App\CPU\translate('sign-up')}}
+                                                        {{ translate('sign_up')}}
                                                     </button>
                                                 </div>
                                             </div>
@@ -217,25 +210,27 @@
                         <a class="btn btn-secondary btn-block" href="{{route('shop-cart')}}">
                             <i class="czi-arrow-{{Session::get('direction') === "rtl" ? 'right' : 'left'}} mt-sm-0 mx-1"></i>
                             <span
-                                class="d-none d-sm-inline">{{\App\CPU\translate('Back')}} {{\App\CPU\translate('to')}}  {{\App\CPU\translate('Cart')}} </span>
-                            <span class="d-inline d-sm-none">{{\App\CPU\translate('Back')}}</span>
+                                class="d-none d-sm-inline">{{ translate('back_to_cart')}} </span>
+                            <span class="d-inline d-sm-none">{{ translate('back')}}</span>
                         </a>
                     </div>
                     <div class="col-6">
                         @if(auth('customer')->check())
                             <a class="btn btn--primary btn-block" href="{{route('shop-cart')}}">
-                                <span class="d-none d-sm-inline">{{\App\CPU\translate('shop_cart')}}</span>
-                                <span class="d-inline d-sm-none">{{\App\CPU\translate('Next')}}</span>
+                                <span class="d-none d-sm-inline">{{ translate('shop_cart')}}</span>
+                                <span class="d-inline d-sm-none">{{ translate('next')}}</span>
                                 <i class="czi-arrow-{{Session::get('direction') === "rtl" ? 'left' : 'right'}} mt-sm-0 mx-1"></i>
                             </a>
                         @endif
                     </div>
                 </div>
             </section>
-            <!-- Sidebar-->
+
             @include('web-views.partials._order-summary')
         </div>
     </div>
+
+    <span id="route-action-checkout-function" data-route="checkout-details"></span>
 @endsection
 
 @push('script')
@@ -266,7 +261,7 @@
                     $('#loading').hide();
                 },
                 error: function () {
-                    toastr.error('{{\App\CPU\translate('Credential not matched')}}!', {
+                    toastr.error('{{ translate("credential_not_matched")}}!', {
                         CloseButton: true,
                         ProgressBar: true
                     });
@@ -310,7 +305,7 @@
                     $('#loading').hide();
                 },
                 error: function () {
-                    toastr.error('{{\App\CPU\translate('something went wrong')}}!', {
+                    toastr.error('{{ translate("something_went_wrong")}}!', {
                         CloseButton: true,
                         ProgressBar: true
                     });

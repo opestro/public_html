@@ -2,13 +2,8 @@
 
 @section('title','Delivery Man Preview')
 
-@push('css_or_js')
-
-@endpush
-
 @section('content')
     <div class="content container-fluid">
-        <!-- Page Header -->
         <div class="page-header">
             <div class="row">
                 <div class="col-6">
@@ -16,36 +11,30 @@
                 </div>
                 <div class="col-6">
                     <a href="{{url()->previous()}}" class="btn btn--primary float-right">
-                        <i class="tio-back-ui"></i> {{\App\CentralLogics\translate('back')}}
+                        <i class="tio-back-ui"></i> {{translate('back')}}
                     </a>
                 </div>
             </div>
-            <!-- Nav -->
             <ul class="nav nav-tabs page-header-tabs">
                 <li class="nav-item">
                     <a class="nav-link active" href="javascript:">
-                        {{\App\CentralLogics\translate('deliveryman')}} {{\App\CentralLogics\translate('reviews')}}
+                        {{translate('deliveryman')}} {{translate('reviews')}}
                     </a>
                 </li>
             </ul>
-            <!-- End Nav -->
         </div>
-        <!-- End Page Header -->
-
-        <!-- Card -->
         <div class="card mb-3 mb-lg-5">
-            <!-- Body -->
             <div class="card-body">
                 <div class="row align-items-md-center gx-md-5">
                     <div class="col-md-auto mb-3 mb-md-0">
                         <div class="d-flex align-items-center">
                             <img class="avatar avatar-xxl avatar-4by3 mr-4"
-                                 onerror="this.src='{{asset('public/assets/admin/img/160x160/img1.jpg')}}'"
-                                 src="{{asset('storage/app/public/delivery-man')}}/{{$dm['image']}}"
+                                 onerror="this.src='{{dynamicAsset(path: 'public/assets/admin/img/160x160/img1.jpg')}}'"
+                                 src="{{dynamicStorage(path: 'storage/app/public/delivery-man')}}/{{$dm['image']}}"
                                  alt="Image Description">
                             <div class="d-block">
                                 <h4 class="display-2 text-dark mb-0">{{count($dm->rating)>0?number_format($dm->rating[0]->average, 2, '.', ' '):0}}</h4>
-                                <p> of {{$dm->reviews->count()}} {{\App\CentralLogics\translate('reviews')}}
+                                <p> of {{$dm->reviews->count()}} {{translate('reviews')}}
                                     <span class="badge badge-soft-dark badge-pill ml-1"></span>
                                 </p>
                             </div>
@@ -56,7 +45,6 @@
                         <ul class="list-unstyled list-unstyled-py-2 mb-0">
 
                         @php($total=$dm->reviews->count())
-                        <!-- Review Ratings -->
                             <li class="d-flex align-items-center font-size-sm">
                                 @php($five=\App\CentralLogics\Helpers::dm_rating_count($dm['id'],5))
                                 <span
@@ -69,9 +57,6 @@
                                 </div>
                                 <span class="ml-3">{{$five}}</span>
                             </li>
-                            <!-- End Review Ratings -->
-
-                            <!-- Review Ratings -->
                             <li class="d-flex align-items-center font-size-sm">
                                 @php($four=\App\CentralLogics\Helpers::dm_rating_count($dm['id'],4))
                                 <span class="mr-3">4 star</span>
@@ -83,9 +68,6 @@
                                 </div>
                                 <span class="ml-3">{{$four}}</span>
                             </li>
-                            <!-- End Review Ratings -->
-
-                            <!-- Review Ratings -->
                             <li class="d-flex align-items-center font-size-sm">
                                 @php($three=\App\CentralLogics\Helpers::dm_rating_count($dm['id'],3))
                                 <span class="mr-3">3 star</span>
@@ -97,9 +79,6 @@
                                 </div>
                                 <span class="ml-3">{{$three}}</span>
                             </li>
-                            <!-- End Review Ratings -->
-
-                            <!-- Review Ratings -->
                             <li class="d-flex align-items-center font-size-sm">
                                 @php($two=\App\CentralLogics\Helpers::dm_rating_count($dm['id'],2))
                                 <span class="mr-3">2 star</span>
@@ -111,9 +90,6 @@
                                 </div>
                                 <span class="ml-3">{{$two}}</span>
                             </li>
-                            <!-- End Review Ratings -->
-
-                            <!-- Review Ratings -->
                             <li class="d-flex align-items-center font-size-sm">
                                 @php($one=\App\CentralLogics\Helpers::dm_rating_count($dm['id'],1))
                                 <span class="mr-3">1 star</span>
@@ -125,18 +101,12 @@
                                 </div>
                                 <span class="ml-3">{{$one}}</span>
                             </li>
-                            <!-- End Review Ratings -->
                         </ul>
                     </div>
                 </div>
             </div>
-            <!-- End Body -->
         </div>
-        <!-- End Card -->
-
-        <!-- Card -->
         <div class="card">
-            <!-- Table -->
             <div class="table-responsive datatable-custom">
                 <table id="datatable" class="table table-borderless table-thead-bordered table-nowrap card-table"
                        data-hs-datatables-options='{
@@ -157,10 +127,10 @@
                    }'>
                     <thead class="thead-light">
                     <tr>
-                        <th>{{\App\CentralLogics\translate('reviewer')}}</th>
-                        <th>{{\App\CentralLogics\translate('review')}}</th>
-                        <th>{{\App\CentralLogics\translate('attachment')}}</th>
-                        <th>{{\App\CentralLogics\translate('date')}}</th>
+                        <th>{{translate('reviewer')}}</th>
+                        <th>{{translate('review')}}</th>
+                        <th>{{translate('attachment')}}</th>
+                        <th>{{translate('date')}}</th>
                     </tr>
                     </thead>
 
@@ -173,8 +143,8 @@
                                    href="{{route('admin.customer.view',[$review['user_id']])}}">
                                     <div class="avatar avatar-circle">
                                         <img class="avatar-img" width="75" height="75"
-                                             onerror="this.src='{{asset('public/assets/admin/img/160x160/img1.jpg')}}'"
-                                             src="{{asset('storage/app/public/profile/'.$review->customer->image)}}"
+                                             onerror="this.src='{{dynamicAsset(path: 'public/assets/admin/img/160x160/img1.jpg')}}'"
+                                             src="{{dynamicStorage(path: 'storage/app/public/profile/'.$review->customer->image)}}"
                                              alt="Image Description">
                                     </div>
                                     <div class="ml-3">
@@ -200,7 +170,7 @@
                             </td>
                             <td>
                                 @foreach(json_decode($review['attachment'],true) as $attachment)
-                                    <img width="100" onerror="this.src='{{asset('public/assets/admin/img/160x160/img2.jpg')}}'" src="{{asset('storage/app/public')}}/{{$attachment}}">
+                                    <img width="100" onerror="this.src='{{dynamicAsset(path: 'public/assets/admin/img/160x160/img2.jpg')}}'" src="{{dynamicStorage(path: 'storage/app/public')}}/{{$attachment}}">
                                 @endforeach
                             </td>
                             <td>
@@ -211,24 +181,13 @@
                     </tbody>
                 </table>
             </div>
-            <!-- End Table -->
-
-            <!-- Footer -->
             <div class="card-footer">
-                <!-- Pagination -->
                 <div class="row justify-content-center justify-content-sm-between align-items-sm-center">
                     <div class="col-12">
                         {!! $reviews->links() !!}
                     </div>
                 </div>
-                <!-- End Pagination -->
             </div>
-            <!-- End Footer -->
         </div>
-        <!-- End Card -->
     </div>
 @endsection
-
-@push('script_2')
-
-@endpush

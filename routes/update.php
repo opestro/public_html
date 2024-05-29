@@ -3,17 +3,16 @@
 |--------------------------------------------------------------------------
 | Install Routes
 |--------------------------------------------------------------------------
-|
-| This route is responsible for handling the intallation process
-|
-|
-|
+| This route is responsible for handling the installation process
 */
 
+use App\Http\Controllers\UpdateController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', 'UpdateController@update_software_index')->name('index');
-Route::post('update-system', 'UpdateController@update_software')->name('update-system');
+Route::controller(UpdateController::class)->group(function () {
+    Route::get('/', 'index')->name('index');
+    Route::post('update-system', 'updateSoftware')->name('update-system');
+});
 
 Route::fallback(function () {
     return redirect('/');

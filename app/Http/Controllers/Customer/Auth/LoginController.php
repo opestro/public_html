@@ -2,22 +2,19 @@
 
 namespace App\Http\Controllers\Customer\Auth;
 
-use App\CPU\CartManager;
-use App\CPU\Helpers;
+use App\Utils\Helpers;
 use App\Http\Controllers\Controller;
-use App\Model\BusinessSetting;
-use App\Model\ProductCompare;
-use App\Model\Wishlist;
+use App\Models\ProductCompare;
+use App\Models\Wishlist;
 use App\User;
+use App\Utils\CartManager;
 use Brian2694\Toastr\Facades\Toastr;
 use Carbon\Carbon;
 use Carbon\CarbonInterval;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Validator;
 use Gregwar\Captcha\CaptchaBuilder;
-use Illuminate\Support\Facades\Session;
 use Gregwar\Captcha\PhraseBuilder;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Session;
 
 class LoginController extends Controller
 {
@@ -53,7 +50,12 @@ class LoginController extends Controller
     public function login()
     {
         session()->put('keep_return_url', url()->previous());
-        return view('customer-view.auth.login');
+
+        if(theme_root_path() == 'default'){
+            return view('web-views.customer-views.auth.login');
+        }else{
+            return redirect()->route('home');
+        }
     }
 
     public function submit(Request $request)
@@ -64,7 +66,6 @@ class LoginController extends Controller
         ]);
 
         //recaptcha validation start
-        /*
         $recaptcha = Helpers::get_business_settings('recaptcha');
         if (isset($recaptcha) && $recaptcha['status'] == 1) {
             try {
@@ -77,14 +78,14 @@ class LoginController extends Controller
                             $response = \file_get_contents($url);
                             $response = json_decode($response);
                             if (!$response->success) {
-                                $fail(\App\CPU\translate('ReCAPTCHA Failed'));
+                                $fail(translate('ReCAPTCHA Failed'));
                             }
                         },
                     ],
                 ]);
             } catch (\Exception $exception) {}
         } else {
-            if (strtolower($request->default_recaptcha_id_customer_login) != strtolower(Session('default_recaptcha_id_customer_login'))) {
+            if (strtolower($request['default_recaptcha_id_customer_login']) != strtolower(Session('default_recaptcha_id_customer_login'))) {
                 if($request->ajax()) {
                     return response()->json([
                         'status'=>'error',
@@ -93,13 +94,12 @@ class LoginController extends Controller
                     ]);
                 }else {
                     Session::forget('default_recaptcha_id_customer_login');
-                    Toastr::error('Captcha Failed.');
+                    Toastr::error(translate('captcha_failed'));
                     return back();
                 }
             }
         }
         //recaptcha validation end
-        */
 
         $user = User::where(['phone' => $request->user_id])->orWhere(['email' => $request->user_id])->first();
         $remember = ($request['remember']) ? true : false;
@@ -111,11 +111,11 @@ class LoginController extends Controller
             if($request->ajax()) {
                 return response()->json([
                     'status'=>'error',
-                    'message'=>translate('credentials_do_not_match_or_account_has_been_suspended'),
+                    'message'=>translate('credentials_doesnt_match'),
                     'redirect_url'=>''
                 ]);
             }else{
-                Toastr::error(translate('credentials_do_not_match_or_account_has_been_suspended'));
+                Toastr::error(translate('credentials_doesnt_match'));
                 return back()->withInput();
             }
         }
@@ -163,32 +163,56 @@ class LoginController extends Controller
             }
         }
 
-        if (isset($user) && $user->is_active && auth('customer')->attempt(['email' => $user->email, 'password' => $request->password], $remember)) {
+        if (isset($user) && auth('customer')->attempt(['email' => $user['email'], 'password' => $request['password']], $remember)) {
+
+            if (!$user->is_active) {
+                auth()->guard('customer')->logout();
+                if($request->ajax()) {
+                    return response()->json([
+                        'status'=>'error',
+                        'message'=>translate('your_account_is_suspended'),
+                    ]);
+                }else{
+                    Toastr::error(translate('your_account_is_suspended'));
+                    return back()->withInput();
+                }
+            }
+
             $wish_list = Wishlist::whereHas('wishlistProduct',function($q){
                 return $q;
             })->where('customer_id', auth('customer')->user()->id)->pluck('product_id')->toArray();
 
             $compare_list = ProductCompare::where('user_id', auth('customer')->id())->pluck('product_id')->toArray();
 
+            session()->forget('wish_list');
+            session()->forget('compare_list');
             session()->put('wish_list', $wish_list);
             session()->put('compare_list', $compare_list);
-            Toastr::info('Welcome to ' . Helpers::get_business_settings('company_name') . '!');
+            Toastr::info(translate('welcome_to') .' '. Helpers::get_business_settings('company_name') . '!');
             CartManager::cart_to_db();
 
             $user->login_hit_count = 0;
             $user->is_temp_blocked = 0;
             $user->temp_block_time = null;
             $user->updated_at = now();
-            if (!empty($request->fcm_token)) {
-                $user->cm_firebase_token = $request->fcm_token;
-            }
             $user->save();
+
+            $redirect_url = "";
+            $previous_url = url()->previous();
+
+            if (
+                strpos($previous_url,'checkout-complete') !== false ||
+                strpos($previous_url,'offline-payment-checkout-complete') !== false ||
+                strpos($previous_url,'track-order') !== false
+            ) {
+                $redirect_url = route('home');
+            }
 
             if($request->ajax()) {
                 return response()->json([
                     'status'=>'success',
                     'message'=>translate('login_successful'),
-                    'redirect_url'=>'samepage',
+                    'redirect_url'=> $redirect_url,
                 ]);
             }else{
                 return redirect(session('keep_return_url'));
@@ -217,10 +241,10 @@ class LoginController extends Controller
 
                 $ajax_message = [
                     'status'=>'error',
-                    'message'=> translate('credentials_do_not_match_or_account_has_been_suspended'),
+                    'message'=> translate('credentials_doesnt_match'),
                     'redirect_url'=>''
                 ];
-                Toastr::error(translate('credentials_do_not_match_or_account_has_been_suspended'));
+                Toastr::error(translate('credentials_doesnt_match'));
 
             }elseif($user->login_hit_count >= $max_login_hit &&  $user->is_temp_blocked == 0){
                 $user->is_temp_blocked = 1;
@@ -232,17 +256,17 @@ class LoginController extends Controller
 
                 $ajax_message = [
                     'status'=>'error',
-                    'message'=> translate('too_many_attempts. please_try_again_after_'). CarbonInterval::seconds($time)->cascade()->forHumans(),
+                    'message'=> translate('too_many_attempts._please_try_again_after_'). CarbonInterval::seconds($time)->cascade()->forHumans(),
                     'redirect_url'=>''
                 ];
-                Toastr::error(translate('too_many_attempts. please_try_again_after_'). CarbonInterval::seconds($time)->cascade()->forHumans());
+                Toastr::error(translate('too_many_attempts._please_try_again_after_'). CarbonInterval::seconds($time)->cascade()->forHumans());
             }else{
                 $ajax_message = [
                     'status'=>'error',
-                    'message'=> translate('credentials_do_not_match_or_account_has_been_suspended'),
+                    'message'=> translate('credentials_doesnt_match'),
                     'redirect_url'=>''
                 ];
-                Toastr::error(translate('credentials_do_not_match_or_account_has_been_suspended'));
+                Toastr::error(translate('credentials_doesnt_match'));
 
                 $user->login_hit_count += 1;
                 $user->save();
@@ -261,7 +285,17 @@ class LoginController extends Controller
     {
         auth()->guard('customer')->logout();
         session()->forget('wish_list');
-        Toastr::info('Come back soon, ' . '!');
+        Toastr::info(translate('come_back_soon').'!');
         return redirect()->route('home');
     }
+
+    public function get_login_modal_data(Request $request)
+    {
+        return response()->json([
+            'login_modal' => view(VIEW_FILE_NAMES['get_login_modal_data'])->render(),
+            'register_modal' => view(VIEW_FILE_NAMES['get_register_modal_data'])->render(),
+        ]);
+    }
+
+
 }

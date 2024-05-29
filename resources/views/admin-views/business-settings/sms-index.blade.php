@@ -1,6 +1,6 @@
 @extends('layouts.back-end.app')
 
-@section('title', \App\CPU\translate('SMS Module Setup'))
+@section('title', translate('SMS_Module_Setup'))
 
 @push('css_or_js')
 
@@ -8,283 +8,115 @@
 
 @section('content')
     <div class="content container-fluid">
-        <!-- Page Title -->
         <div class="mb-4 pb-2">
             <h2 class="h1 mb-0 text-capitalize d-flex align-items-center gap-2">
-                <img src="{{asset('/public/assets/back-end/img/3rd-party.png')}}" alt="">
-                {{\App\CPU\translate('3rd_party')}}
+                <img src="{{dynamicAsset(path: 'public/assets/back-end/img/3rd-party.png')}}" alt="">
+                {{translate('3rd_party')}}
             </h2>
         </div>
-        <!-- End Page Title -->
-
-        <!-- Inlile Menu -->
         @include('admin-views.business-settings.third-party-inline-menu')
-        <!-- End Inlile Menu -->
-
-        <div class="row gy-3">
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">{{\App\CPU\translate('releans_sms')}}</h5>
-                    </div>
-                    <div class="card-body text-{{Session::get('direction') === "rtl" ? 'right' : 'left'}}">
-                        <span class="badge text-wrap badge-soft-info mb-3">{{\App\CPU\translate('NB_:_#OTP#_will_be_replace_with_otp')}}</span>
-                        @php($config=\App\CPU\Helpers::get_business_settings('releans_sms'))
-                        <form action="{{env('APP_MODE')!='demo'?route('admin.business-settings.sms-module-update',['releans_sms']):'javascript:'}}"
-                              style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};"
-                              method="post">
-                            @csrf
-
-                            <label class="mb-3 d-block title-color">{{\App\CPU\translate('releans_sms')}}</label>
-
-                            <div class="d-flex gap-10 align-items-center mb-2">
-                                <input type="radio" name="status" value="1" {{isset($config) && $config['status']==1?'checked':''}}>
-                                <label class="title-color mb-0">{{\App\CPU\translate('active')}}</label>
-                            </div>
-                            <div class="d-flex gap-10 align-items-center mb-4">
-                                <input type="radio" name="status" value="0" {{isset($config) && $config['status']==0?'checked':''}}>
-                                <label class="title-color mb-0">{{\App\CPU\translate('inactive')}} </label>
-
-                            </div>
-
-                            <div class="form-group">
-                                <label class="title-color">{{\App\CPU\translate('api_key')}}</label>
-                                <input type="text" class="form-control" name="api_key"
-                                       value="{{env('APP_MODE')!='demo'?$config['api_key']??"":''}}">
-                            </div>
-
-                            <div class="form-group">
-                                <label class="title-color">{{\App\CPU\translate('from')}}</label>
-                                <input type="text" class="form-control" name="from"
-                                       value="{{env('APP_MODE')!='demo'?$config['from']??"":''}}">
-                            </div>
-
-                            <div class="form-group">
-                                <label class="title-color">{{\App\CPU\translate('otp_template')}}</label>
-                                <input type="text" class="form-control" name="otp_template"
-                                       value="{{env('APP_MODE')!='demo'?$config['otp_template']??"":''}}">
-                            </div>
-
-                            <div class="mt-3 d-flex flex-wrap justify-content-end gap-10">
-                                <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}"
-                                    onclick="{{env('APP_MODE')!='demo'?'':'call_demo()'}}"
-                                    class="btn btn--primary px-4">{{\App\CPU\translate('save')}}</button>
-                            </div>
-                        </form>
-                    </div>
+        <div class="row gy-3" id="sms-gateway-cards">
+            <div class="col-12">
+                <div class="mt-2 valley-alert">
+                    <img width="16" class="mt-1" src="{{dynamicAsset(path: 'public/assets/back-end/img/info-circle.svg')}}"
+                         alt="">
+                    <p class="mb-0">
+                        <strong>{{translate('NB').':'}}</strong>
+                        {{ translate('Please_re-check_if_you’ve_put_all_the_data_correctly_or_contact_your_SMS_gateway_provider_for_assistance').'.'}}
+                    </p>
                 </div>
             </div>
-
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">{{\App\CPU\translate('twilio_sms')}}</h5>
-                    </div>
-                    <div class="card-body text-{{Session::get('direction') === "rtl" ? 'right' : 'left'}}">
-                        <span class="badge text-wrap badge-soft-info mb-3">{{\App\CPU\translate('NB_:_#OTP#_will_be_replace_with_otp')}}</span>
-                        @php($config=\App\CPU\Helpers::get_business_settings('twilio_sms'))
-                        <form action="{{env('APP_MODE')!='demo'?route('admin.business-settings.sms-module-update',['twilio_sms']):'javascript:'}}"
-                              style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};"
-                              method="post">
-                            @csrf
-                            <label class="mb-3 d-block title-color">{{\App\CPU\translate('twilio_sms')}}</label>
-
-                            <div class="d-flex gap-10 align-items-center mb-2">
-                                <input type="radio" name="status" value="1" {{isset($config) && $config['status']==1?'checked':''}}>
-                                <label class="title-color mb-0">{{\App\CPU\translate('active')}}</label>
-                            </div>
-                            <div class="d-flex gap-10 align-items-center mb-4">
-                                <input type="radio" name="status" value="0" {{isset($config) && $config['status']==0?'checked':''}}>
-                                <label class="title-color mb-0">{{\App\CPU\translate('inactive')}} </label>
-                            </div>
-                            <div class="form-group">
-                                <label class="text-capitalize title-color">{{\App\CPU\translate('sid')}}</label>
-                                <input type="text" class="form-control" name="sid"
-                                       value="{{env('APP_MODE')!='demo'?$config['sid']??"":''}}">
-                            </div>
-
-                            <div class="form-group">
-                                <label class="text-capitalize title-color">{{\App\CPU\translate('messaging_service_sid')}}</label>
-                                <input type="text" class="form-control" name="messaging_service_sid"
-                                       value="{{env('APP_MODE')!='demo'?$config['messaging_service_sid']??"":''}}">
-                            </div>
-
-                            <div class="form-group">
-                                <label class="title-color">{{\App\CPU\translate('token')}}</label>
-                                <input type="text" class="form-control" name="token"
-                                       value="{{env('APP_MODE')!='demo'?$config['token']??"":''}}">
-                            </div>
-
-                            <div class="form-group">
-                                <label class="title-color">{{\App\CPU\translate('from')}}</label>
-                                <input type="text" class="form-control" name="from"
-                                       value="{{env('APP_MODE')!='demo'?$config['from']??"":''}}">
-                            </div>
-
-                            <div class="form-group">
-                                <label class="title-color">{{\App\CPU\translate('otp_template')}}</label>
-                                <input type="text" class="form-control" name="otp_template"
-                                       value="{{env('APP_MODE')!='demo'?$config['otp_template']??"":''}}">
-                            </div>
-
-                            <div class="mt-3 d-flex flex-wrap justify-content-end gap-10">
-                                <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}"
-                                    onclick="{{env('APP_MODE')!='demo'?'':'call_demo()'}}"
-                                    class="btn btn--primary px-4">{{\App\CPU\translate('save')}}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">{{\App\CPU\translate('nexmo_sms')}}</h5>
-                    </div>
-                    <div class="card-body text-{{Session::get('direction') === "rtl" ? 'right' : 'left'}}">
-                        <span class="badge text-wrap badge-soft-info mb-3">{{\App\CPU\translate('NB_:_#OTP#_will_be_replace_with_otp')}}</span>
-                        @php($config=\App\CPU\Helpers::get_business_settings('nexmo_sms'))
-                        <form action="{{env('APP_MODE')!='demo'?route('admin.business-settings.sms-module-update',['nexmo_sms']):'javascript:'}}"
-                              style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};"
-                              method="post">
-                            @csrf
-
-                            <label class="mb-3 d-block title-color">{{\App\CPU\translate('nexmo_sms')}}</label>
-
-
-                            <div class="d-flex gap-10 align-items-center mb-2">
-                                <input type="radio" name="status" value="1" {{isset($config) && $config['status']==1?'checked':''}}>
-                                <label class="title-color mb-0">{{\App\CPU\translate('active')}}</label>
-
-                            </div>
-                            <div class="d-flex gap-10 align-items-center mb-4">
-                                <input type="radio" name="status" value="0" {{isset($config) && $config['status']==0?'checked':''}}>
-                                <label class="title-color mb-0">{{\App\CPU\translate('inactive')}} </label>
-                            </div>
-                            <div class="form-group">
-                                <label class="text-capitalize"
-                                       class="title-color">{{\App\CPU\translate('api_key')}}</label>
-                                <input type="text" class="form-control" name="api_key"
-                                       value="{{env('APP_MODE')!='demo'?$config['api_key']??"":''}}">
-                            </div>
-                            <div class="form-group">
-                                <label class="title-color">{{\App\CPU\translate('api_secret')}}</label>
-                                <input type="text" class="form-control" name="api_secret"
-                                       value="{{env('APP_MODE')!='demo'?$config['api_secret']??"":''}}">
-                            </div>
-                            <div class="form-group">
-                                <label class="title-color">{{\App\CPU\translate('from')}}</label>
-                                <input type="text" class="form-control" name="from"
-                                       value="{{env('APP_MODE')!='demo'?$config['from']??"":''}}">
-                            </div>
-                            <div class="form-group">
-                                <label class="title-color">{{\App\CPU\translate('otp_template')}}</label>
-                                <input type="text" class="form-control" name="otp_template"
-                                       value="{{env('APP_MODE')!='demo'?$config['otp_template']??"":''}}">
-                            </div>
-                            <div class="mt-3 d-flex flex-wrap justify-content-end gap-10">
-                                <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}"
-                                    onclick="{{env('APP_MODE')!='demo'?'':'call_demo()'}}"
-                                    class="btn btn--primary px-4">{{\App\CPU\translate('save')}}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">{{\App\CPU\translate('2factor_sms')}}</h5>
-                    </div>
-                    <div class="card-body text-{{Session::get('direction') === "rtl" ? 'right' : 'left'}}">
-                        <div class="mb-3 d-flex flex-wrap gap-10">
-                            <span class="badge text-wrap badge-soft-info">{{\App\CPU\translate("EX of SMS provider's template : your OTP is XXXX here, please check")}}.</span>
-                            <span class="badge text-wrap badge-soft-info">{{\App\CPU\translate('NB : XXXX will be replace with otp')}}</span>
+            @if($paymentGatewayPublishedStatus)
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body d-flex justify-content-around align-items-center">
+                            <h4 class="text-danger bg-transparent m-0">
+                                <i class="tio-info-outined"></i>
+                                {{ translate('your_current_SMS_settings_are_disabled_because_you_have_enabled_sms_gateway_addon_To_visit_your_currently_active_sms_gateway_settings_please_follow_the_link') }}
+                            </h4>
+                            <span>
+                            <a href="{{!empty($paymentUrl) ? $paymentUrl : ''}}" class="btn btn-outline-primary"><i class="tio-settings mr-1"></i>{{translate('settings')}}</a>
+                        </span>
                         </div>
+                    </div>
+                </div>
+            @endif
+            @foreach($smsGateways as $key => $smsConfig)
+                <div class="col-md-6">
+                    <div class="card h-100">
+                        <form action="{{route('admin.business-settings.addon-sms-set')}}" method="POST"
+                              id="{{$smsConfig['key_name']}}-form" enctype="multipart/form-data">
+                            @csrf @method('PUT')
+                            <div class="card-header d-flex flex-wrap align-content-around">
+                                <h5>
+                                    <span class="text-uppercase">{{ str_replace('_', ' ', $smsConfig['key_name'])}}</span>
+                                </h5>
 
-                        @php($config=\App\CPU\Helpers::get_business_settings('2factor_sms'))
-                        <form action="{{env('APP_MODE')!='demo'?route('admin.business-settings.sms-module-update',['2factor_sms']):'javascript:'}}"
-                              style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};"
-                              method="post">
-                            @csrf
-
-                            <label class="mb-3 d-block title-color">{{\App\CPU\translate('2factor_sms')}}</label>
-
-                            <div class="d-flex gap-10 align-items-center mb-2">
-                                <input type="radio" name="status" value="1" {{isset($config) && $config['status']==1?'checked':''}}>
-                                <label class="title-color mb-0">{{\App\CPU\translate('active')}}</label>
+                                <?php
+                                    $imgPath = 'sms/'.$smsConfig['key_name'].'.png';
+                                ?>
+                                <label class="switcher show-status-text">
+                                    <input class="switcher_input toggle-switch-message" type="checkbox" name="status" value="1"
+                                           id="{{$smsConfig['key_name']}}" {{$smsConfig['is_active']==1?'checked':''}}
+                                           data-modal-id = "toggle-status-modal"
+                                           data-toggle-id = "{{$smsConfig['key_name']}}"
+                                           data-on-image = "{{ $imgPath }}"
+                                           data-off-image = "{{ $imgPath }}"
+                                           data-on-title = "{{translate('want_to_Turn_ON_').' '.ucwords(str_replace('_',' ',$smsConfig['key_name'])).' '.translate('_as_the_SMS_Gateway').'?'}}"
+                                           data-off-title = "{{translate('want_to_Turn_OFF_').' '.ucwords(str_replace('_',' ',$smsConfig['key_name'])).' '.translate('_as_the_SMS_Gateway').'?'}}"
+                                           data-on-message = "<p>{{translate('if_enabled_system_can_use_this_SMS_Gateway')}}</p>"
+                                           data-off-message = "<p>{{translate('if_disabled_system_cannot_use_this_SMS_Gateway')}}</p>">
+                                    <span class="switcher_control" data-ontitle="{{ translate('on') }}" data-offtitle="{{ translate('off') }}"></span>
+                                </label>
                             </div>
-                            <div class="d-flex gap-10 align-items-center mb-4">
-                                <input type="radio" name="status" value="0" {{isset($config) && $config['status']==0?'checked':''}}>
-                                <label class="title-color mb-0">{{\App\CPU\translate('inactive')}} </label>
-                            </div>
-                            <div class="form-group">
-                                <label class="text-capitalize title-color">{{\App\CPU\translate('api_key')}}</label>
-                                <input type="text" class="form-control" name="api_key"
-                                       value="{{env('APP_MODE')!='demo'?$config['api_key']??"":''}}">
-                            </div>
-
-                            <div class="mt-3 d-flex flex-wrap justify-content-end gap-10">
-                                <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}"
-                                    onclick="{{env('APP_MODE')!='demo'?'':'call_demo()'}}"
-                                    class="btn btn--primary px-4">{{\App\CPU\translate('save')}}</button>
+                            <div class="card-body">
+                                <input name="gateway" value="{{$smsConfig['key_name']}}" class="d-none">
+                                <input name="mode" value="live" class="d-none">
+                                @php($skip=['gateway','mode','status'])
+                                @foreach($smsConfig['live_values'] as $keyName => $value)
+                                    @if(!in_array($keyName, $skip))
+                                        <div class="form-group mb-10px mt-20px">
+                                            <label for="exampleFormControlInput1"
+                                                   class="form-label">{{ucwords(str_replace('_',' ',$keyName))}}
+                                                   <span class="text-danger">*</span>
+                                                </label>
+                                            <input type="text" class="form-control"
+                                                   name="{{$keyName}}"
+                                                   placeholder="{{ucwords(str_replace('_',' ',$keyName))}}"
+                                                   value="{{env('APP_ENV')=='demo'?'':$value}}">
+                                        </div>
+                                    @endif
+                                @endforeach
+                                <div class="text-right mt-20px">
+                                    <button type="submit" class="btn btn-primary px-5">{{translate('save')}}</button>
+                                </div>
                             </div>
                         </form>
                     </div>
                 </div>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card h-100">
-                    <div class="card-header">
-                        <h5 class="mb-0">{{\App\CPU\translate('msg91_sms')}}</h5>
-                    </div>
-                    <div class="card-body text-{{Session::get('direction') === "rtl" ? 'right' : 'left'}}">
-                        <span class="badge text-wrap badge-soft-info mb-3">{{\App\CPU\translate('NB : Keep an OTP variable in your SMS providers OTP Template')}}.</span>
-                        @php($config=\App\CPU\Helpers::get_business_settings('msg91_sms'))
-                        <form action="{{env('APP_MODE')!='demo'?route('admin.business-settings.sms-module-update',['msg91_sms']):'javascript:'}}"
-                              style="text-align: {{Session::get('direction') === "rtl" ? 'right' : 'left'}};"
-                              method="post">
-                            @csrf
-
-                            <label class="mb-3 d-block title-color">{{\App\CPU\translate('msg91_sms')}}</label>
-
-                            <div class="d-flex gap-10 align-items-center mb-2">
-                                <input type="radio" name="status" value="1" {{isset($config) && $config['status']==1?'checked':''}}>
-                                <label class="title-color mb-0">{{\App\CPU\translate('active')}}</label>
-
-                            </div>
-                            <div class="d-flex gap-10 align-items-center mb-4">
-                                <input type="radio" name="status" value="0" {{isset($config) && $config['status']==0?'checked':''}}>
-                                <label class="title-color mb-0">{{\App\CPU\translate('inactive')}} </label>
-
-                            </div>
-                            <div class="form-group">
-                                <label class="text-capitalize title-color">{{\App\CPU\translate('template_id')}}</label>
-                                <input type="text" class="form-control" name="template_id"
-                                       value="{{env('APP_MODE')!='demo'?$config['template_id']??"":''}}">
-                            </div>
-                            <div class="form-group">
-                                <label class="text-capitalize title-color">{{\App\CPU\translate('authkey')}}</label>
-                                <input type="text" class="form-control" name="authkey"
-                                       value="{{env('APP_MODE')!='demo'?$config['authkey']??"":''}}">
-                            </div>
-
-                            <div class="mt-3 d-flex flex-wrap justify-content-end gap-10">
-                                <button type="{{env('APP_MODE')!='demo'?'submit':'button'}}"
-                                    onclick="{{env('APP_MODE')!='demo'?'':'call_demo()'}}"
-                                    class="btn btn--primary px-4">{{\App\CPU\translate('save')}}</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
+            @endforeach
         </div>
+
     </div>
 @endsection
 
-@push('script_2')
-
+@push('script')
+    <script>
+        'use strict';
+        @if($paymentGatewayPublishedStatus == 1)
+            let smsGatewayCards = $('#sms-gateway-cards');
+            smsGatewayCards.find('input').each(function () {
+                $(this).attr('disabled', true);
+            });
+            smsGatewayCards.find('select').each(function () {
+                $(this).attr('disabled', true);
+            });
+            smsGatewayCards.find('.switcher_input').each(function () {
+                $(this).removeAttr('checked', true);
+            });
+            smsGatewayCards.find('button').each(function () {
+                $(this).attr('disabled', true);
+            });
+        @endif
+    </script>
 @endpush

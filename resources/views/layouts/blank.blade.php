@@ -1,80 +1,50 @@
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="en">
+
 <head>
-    <meta charset="utf-8">
-    <title>
-        @yield('title')
-    </title>
-    <!-- SEO Meta Tags-->
-    <meta name="description" content="">
-    <meta name="keywords" content="">
-    <meta name="author" content="">
-    <!-- Viewport-->
-    <meta name="_token" content="{{csrf_token()}}">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Favicon and Touch Icons-->
-    <link rel="apple-touch-icon" sizes="180x180" href="">
-    <link rel="icon" type="image/png" sizes="32x32" href="">
-    <link rel="icon" type="image/png" sizes="16x16" href="">
-    <link rel="stylesheet" href="{{asset('public/assets/back-end')}}/css/toastr.css"/>
-    <!-- Main Theme Styles + Bootstrap-->
-    <link rel="stylesheet" media="screen" href="{{asset('public/assets/front-end')}}/css/theme.min.css">
-    <link rel="stylesheet" media="screen" href="{{asset('public/assets/front-end')}}/css/slick.css">
-    <link rel="stylesheet" href="{{asset('public/assets/back-end')}}/css/toastr.css"/>
-    <link rel="stylesheet" href="{{asset('public/assets/front-end')}}/css/master.css"/>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@yield('title')</title>
+
+    <link rel="shortcut icon" href="{{ dynamicAsset(path: 'public/assets/installation/assets/img/favicon.svg') }}">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/installation/assets/css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/installation/assets/css/style.css') }}">
+    <link rel="stylesheet" href="{{ dynamicAsset(path: 'public/assets/back-end/css/installation.css') }}">
 </head>
-<!-- Body-->
-<body class="toolbar-enabled">
 
-{{--loader--}}
-<div class="container">
-    <div class="row">
-        <div class="col-md-12">
-            <div id="loading" style="display: none;">
-                <div class="__inline-19">
-                    <img width="200" src="{{asset('public/assets/front-end/img/loader.gif')}}">
-                </div>
-            </div>
-        </div>
+<body>
+<section style="background-image: url('{{ dynamicAsset(path: 'public/assets/installation/assets/img/page-bg.png') }}')"
+         class="w-100 min-vh-100 bg-img position-relative py-5">
+
+    <div class="logo">
+        <img src="{{ dynamicAsset(path: 'public/assets/installation/assets/img/favicon.svg') }}" alt="">
     </div>
-</div>
-{{--loader--}}
 
-<!-- Page Content-->
-@yield('content')
+    <div class="custom-container">
+    @yield('content')
+        <footer class="footer py-3 mt-4">
+            <div class="d-flex flex-column flex-sm-row justify-content-between gap-2 align-items-center">
+                <div class="footer-logo">
+                    <img src="{{ dynamicAsset(path: 'public/assets/installation/assets/img/logo.svg') }}" alt="">
+                </div>
+                <p class="copyright-text mb-0">© {{ date("Y") }} | {{'All Rights Reserved'}}</p>
+            </div>
+        </footer>
+    </div>
+</section>
 
-<!-- Back To Top Button-->
-<a class="btn-scroll-top" href="#top" data-scroll>
-    <span class="btn-scroll-top-tooltip text-muted font-size-sm mr-2">Top</span><i
-        class="btn-scroll-top-icon czi-arrow-up"> </i>
-</a>
-
-<!-- Vendor scrits: js libraries and plugins-->
-{{--<script src="{{asset('public/assets/front-end')}}/vendor/jquery/dist/jquery.slim.min.js"></script>--}}
-<script src="{{asset('public/assets/front-end')}}/vendor/jquery/dist/jquery-2.2.4.min.js"></script>
-<script src="{{asset('public/assets/front-end')}}/vendor/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-{{--Toastr--}}
-<script src={{asset("public/assets/back-end/js/toastr.js")}}></script>
-<!-- Main theme script-->
-<script src="{{asset('public/assets/front-end')}}/js/theme.min.js"></script>
-<script src="{{asset('public/assets/front-end')}}/js/slick.min.js"></script>
-
-<script src="{{asset('public/assets/front-end')}}/js/sweet_alert.js"></script>
-{{--Toastr--}}
-<script src={{asset("public/assets/back-end/js/toastr.js")}}></script>
-{!! Toastr::message() !!}
-
-
-<script>
-    function currency_select(val)
-    {
-        if(val==='multi_currency'){
-            toastr.warning("Multi-currency is depends on exchange rate and your gateway configuration, So if you don't need multi-currency it will be better select single currency. (We prefer to use single currency).", {
-            CloseButton: true,
-            ProgressBar: true
-        });
-        }
-    }
-</script>
 </body>
+
+<script src={{ dynamicAsset(path: "public/assets/back-end/js/jquery.js") }}></script>
+<script src="{{ dynamicAsset(path: 'public/assets/installation/assets/js/bootstrap.bundle.min.js') }}"></script>
+<script src={{ dynamicAsset(path: "public/assets/back-end/js/toastr.js") }}></script>
+<script src="{{ dynamicAsset(path: 'public/assets/installation/assets/js/script.js') }}"></script>
+<script src="{{ dynamicAsset(path: 'public/assets/back-end/js/installation.js') }}"></script>
+{!! Toastr::message() !!}
 </html>

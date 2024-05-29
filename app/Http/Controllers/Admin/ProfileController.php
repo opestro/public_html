@@ -2,55 +2,72 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\CPU\Helpers;
-use App\CPU\ImageManager;
-use App\Http\Controllers\Controller;
-use App\Model\Admin;
+use App\Contracts\Repositories\AdminRepositoryInterface;
+use App\Enums\ViewPaths\Admin\Profile;
+use App\Http\Controllers\BaseController;
+use App\Http\Requests\Admin\AdminPasswordRequest;
+use App\Http\Requests\Admin\AdminRequest;
+use App\Services\AdminService;
 use Brian2694\Toastr\Facades\Toastr;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 
-class ProfileController extends Controller
+class ProfileController extends BaseController
 {
-
-    public function view()
+    public function __construct(
+        private readonly AdminRepositoryInterface $adminRepo,
+        private readonly AdminService $adminService,
+    )
     {
-        $data = Admin::where('id', auth('admin')->id())->first();
-        return view('admin-views.profile.view', compact('data'));
+    }
+    public function index(?Request $request, string $type = null): View|Collection|LengthAwarePaginator|null|callable|RedirectResponse
+    {
+       return $this->getListView();
+    }
+    public function getListView():View
+    {
+        $admin = $this->adminRepo->getFirstWhere(['id'=>auth('admin')->id()]);
+        return view(Profile::INDEX[VIEW],compact('admin'));
     }
 
-    public function edit($id)
+    /**
+     * @param string|int $id
+     * @return View|RedirectResponse
+     */
+    public function getUpdateView(string|int $id):View|RedirectResponse
     {
-        $data = Admin::where('id', $id)->first();
-        $shop_banner = Helpers::get_business_settings('shop_banner');
-        return view('admin-views.profile.edit', compact('data', 'shop_banner'));
+        $admin = $this->adminRepo->getFirstWhere(['id' => $id]);
+        $shopBanner = getWebConfig('shop_banner');
+        return view(Profile::UPDATE[VIEW],compact('admin','shopBanner'));
     }
 
-    public function update(Request $request, $id)
+    /**
+     * @param AdminRequest $request
+     * @param string|int $id
+     * @return RedirectResponse
+     */
+    public function update(AdminRequest $request, string|int $id):RedirectResponse
     {
-        $admin = Admin::find($id);
-        $admin->name = $request->name;
-        $admin->phone = $request->phone;
-        $admin->email = $request->email;
-        if ($request->image) {
-            $admin->image = ImageManager::update('admin/', $admin->image, 'png', $request->file('image'));
-        }
-        $admin->save();
-        Toastr::info('Profile updated successfully!');
-        return back();
+
+        $admin = $this->adminRepo->getFirstWhere(['id' => $id]);
+        $this->adminRepo->update(id: $id, data: $this->adminService->getAdminDataForUpdate(request: $request, admin: $admin));
+        Toastr::success(translate('profile_updated_successfully'));
+        return redirect()->back();
     }
 
-    public function settings_password_update(Request $request)
+    /**
+     * @param AdminPasswordRequest $request
+     * @param string|int $id
+     * @return RedirectResponse
+     */
+    public function updatePassword(AdminPasswordRequest $request , string|int $id):RedirectResponse
     {
-        $request->validate([
-            'password' => 'required|same:confirm_password|min:8',
-            'confirm_password' => 'required',
-        ]);
-
-        $admin = Admin::find(auth('admin')->id());
-        $admin->password = bcrypt($request['password']);
-        $admin->save();
-        Toastr::success('Admin password updated successfully!');
-        return back();
+        $this->adminRepo->update(id:$id,data:$this->adminService->getAdminPasswordData(request:$request));
+        Toastr::success(translate('admin_password_updated_successfully'));
+        return redirect()->back();
     }
 
 }

@@ -1,6 +1,6 @@
 <div class="modal-header">
     <h5 class="modal-title" id="exampleModalLongTitle">
-        {{ \App\CPU\translate('History_of_Order_No:') }} {{ $histories[0]->order_id?? '##' }}
+        {{ translate('history_of_Order_No:') }} {{ $histories[0]->order_id?? '##' }}
         <span class="badge badge-soft-dark radius-50 fz-12 ml-1">{{ $histories->count() }}</span>
     </h5>
     <button type="button" class="close" data-dismiss="modal" aria-label="Close">
@@ -20,25 +20,25 @@
                 <div class="timeline-info">
                     <p class="timeline-title">
                         @if($history->status == 'pending')
-                            {{\App\CPU\translate('Pending')}}
+                            {{translate('pending')}}
                         @elseif($history->status == 'confirmed')
-                            {{\App\CPU\translate('Confirmed')}}
+                            {{translate('confirmed')}}
                         @elseif($history->status == 'processing')
-                            {{\App\CPU\translate('Packaging')}}
+                            {{translate('packaging')}}
                         @elseif($history->status == 'out_for_delivery')
-                            {{\App\CPU\translate('Out_for_Delivery')}}
+                            {{translate('out_for_Delivery')}}
                         @elseif($history->status == 'delivered')
-                            {{\App\CPU\translate('delivered')}}
+                            {{translate('delivered')}}
                         @elseif($history->status == 'returned')
-                            {{\App\CPU\translate('returned')}}
+                            {{translate('returned')}}
                         @elseif($history->status == 'failed')
-                            {{\App\CPU\translate('Failed_to_Deliver')}}
+                            {{translate('failed_to_Deliver')}}
                         @elseif($history->status == 'canceled')
-                            {{\App\CPU\translate('Canceled')}}
+                            {{translate('canceled')}}
                         @endif
                     </p>
                     <p class="timeline-text">{{$history->created_at->format('d/m/y')}} {{$history->created_at->format('h:i A')}}</p>
-                    <p class="timeline-text">{{ \App\CPU\translate('Service_Time') }} : {{$history->created_at->format('d/m/y')}} {{$history->created_at->format('h:i A')}}</p>
+                    <p class="timeline-text">{{ translate('service_Time') }} : {{$history->created_at->format('d/m/y')}} {{$history->created_at->format('h:i A')}}</p>
                 </div>
             </div>
             @empty
@@ -49,7 +49,7 @@
                     </svg>
                 </div>
                 <div class="timeline-info">
-                    <p class="timeline-title">{{ \App\CPU\translate('No_history_for_this_order') }}</p>
+                    <p class="timeline-title">{{ translate('no_history_for_this_order') }}</p>
                 </div>
             </div>
             @endforelse
@@ -58,5 +58,5 @@
     </div>
 </div>
 <div class="modal-footer">
-    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ \App\CPU\translate('Close') }}</button>
+    <button type="button" class="btn btn-secondary" data-dismiss="modal">{{ translate('close') }}</button>
 </div>

@@ -2,20 +2,26 @@
 
 namespace App\Http\Controllers\Web;
 
+use App\Contracts\Repositories\CurrencyRepositoryInterface;
 use App\Http\Controllers\Controller;
-use App\Model\Currency;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class CurrencyController extends Controller
 {
-    public function changeCurrency(Request $request)
+    public function __construct(
+        private readonly CurrencyRepositoryInterface $currencyRepo
+    )
     {
-        session()->put('currency_code', $request->currency_code);
-        $currency = Currency::where('code', $request->currency_code)->first();
-        $currency->success = translate('Currency changed to');
-        session()->put('currency_symbol', $currency->symbol);
-        session()->put('currency_exchange_rate', $currency->exchange_rate);
+    }
 
-        return response()->json($currency);
+    public function changeCurrency(Request $request): JsonResponse
+    {
+        session()->put('currency_code', $request['currency_code']);
+        $currency = $this->currencyRepo->getFirstWhere(params: ['code'=>$request['currency_code']]);
+        session()->put('currency_symbol', $currency['symbol']);
+        session()->put('currency_exchange_rate', $currency['exchange_rate']);
+        $message = translate('currency_changed_to').' '.$currency['name'];
+        return response()->json(['message'=>$message]);
     }
 }

@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
-use App\CPU\Helpers;
+use App\Utils\Helpers;
+use App\Exports\ProductStockReportExport;
 use App\Http\Controllers\Controller;
-use App\Model\Category;
-use App\Model\Product;
-use App\Model\Seller;
+use App\Models\Category;
+use App\Models\Product;
+use App\Models\Seller;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
 use Rap2hpoutre\FastExcel\FastExcel;
 
 class ProductStockReportController extends Controller
@@ -24,7 +26,7 @@ class ProductStockReportController extends Controller
         $sort = $request['sort'] ?? 'ASC';
         $category_id = $request['category_id'] ?? 'all';
 
-        $stock_limit = \App\CPU\Helpers::get_business_settings('stock_limit');
+        $stock_limit = \App\Utils\Helpers::get_business_settings('stock_limit');
         $sellers = Seller::where(['status'=>'approved'])->get();
         $categories = Category::where(['position'=>0])->get();
         $query_param = ['search' => $search, 'sort' => $sort, 'seller_id' => $seller_id, 'category_id'=>$category_id];
@@ -48,25 +50,17 @@ class ProductStockReportController extends Controller
     {
         $stock_limit = Helpers::get_business_settings('stock_limit');
         $products = self::common_query($request)->get();
-
-        $data = array();
-        foreach ($products as $product) {
-            if($product['current_stock'] >= $stock_limit){
-                $stock_msg = 'In-Stock';
-            }elseif($product['current_stock']  == 0){
-                $stock_msg = 'Out of Stock';
-            }else{
-                $stock_msg = 'Soon Stock Out';
-            }
-            $data[] = array(
-                'Product Name' => $product->name,
-                'Date' => date('d M Y', strtotime($product->updated_at)),
-                'Current Stock' => $product->current_stock,
-                'Status' => $stock_msg,
-            );
-        }
-
-        return (new FastExcel($data))->download('out_of_stock_product.xlsx');
+        $seller = $request->has('seller_id') && $request['seller_id'] != 'inhouse' && $request['seller_id'] != 'all' ? (Seller::with('shop')->find($request->seller_id)) : ($request['seller_id']?? 'all');
+        $category = $request->has('category_id') && $request['category_id'] != 'all' ? (Category::find($request->category_id)) : ($request['category_id'] ??'all');
+        $data = [
+            'products' =>$products,
+            'search' => $request['search'],
+            'seller' => $seller,
+            'category' => $category,
+            'sort' => $request['sort'] ?? 'ASC',
+            'stock_limit' => $stock_limit,
+        ];
+        return Excel::download(new ProductStockReportExport($data) , 'Product-stock-report.xlsx');
     }
 
     public function common_query($request){
